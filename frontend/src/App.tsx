@@ -12,7 +12,7 @@ import {
   Command,
   Download,
   FolderCog,
-  Github,
+  GitBranch,
   KeyRound,
   Link2,
   MoveHorizontal,
@@ -257,7 +257,7 @@ function AddResourceDialog({ kind, onClose, onSubmit, returnFocus }: { kind: Res
                 <label>仓库子目录<input name="subdir" placeholder="skills/code-review" /></label>
                 <label>本地名称<input name="name" placeholder="自动识别" /></label>
               </div>
-              <p className="form-note"><Github />只读安装到 <code>~/.chu/skills</code>，更新由你手动触发。</p>
+              <p className="form-note"><GitBranch />只读安装到 <code>~/.chu/skills</code>，更新由你手动触发。</p>
             </>
           ) : null}
           {kind === "mcps" ? (
