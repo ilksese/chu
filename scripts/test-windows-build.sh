@@ -13,7 +13,7 @@ wails init -n testapp -t "$(pwd)" -dir "$TEMP_DIR/testapp"
 
 echo "📦 Installing frontend dependencies..."
 cd "$TEMP_DIR/testapp/frontend"
-npm install
+pnpm install
 
 echo "🔨 Building Windows executable..."
 cd "$TEMP_DIR/testapp"
