@@ -3,7 +3,7 @@
 本地 AI 编程 Agent 资源管理桌面应用：集中管理 **Skills、MCP 服务、自定义 Agent**，并部署到 OpenCode、Claude Code、Codex 三个宿主。
 
 - 桌面壳：[Wails v2](https://wails.io)（Go + WebView2）
-- 前端：React + TypeScript + Vite + Tailwind CSS + [Magic UI](https://magicui.design)
+- 前端：React + TypeScript + Vite + Tailwind CSS + [Magic UI](https://magicui.design) + Zustand
 - 包管理：pnpm
 - 界面：浅色主题，neo-brutalist 风格，视觉规范见 `DESIGN.md`
 
@@ -23,12 +23,12 @@
 
 ## 构建
 
-依赖：Go 1.25+、Node 18+、pnpm；`wails build` / `wails dev` 需要 [wails CLI](https://wails.io/docs/getting-started/installation)（`go install github.com/wailsapp/wails/v2/cmd/wails@latest`）。
+依赖：Go 1.25+、Node 22.22+、pnpm；`wails build` / `wails dev` 需要与 `go.mod` 一致的 Wails CLI v2.16.0（`go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`）。
 
 ### 开发
 
 ```bash
-wails dev
+pm2 start 'wails dev' --name 'dev:chu' --cwd "$PWD"
 ```
 
 ### 构建
@@ -69,9 +69,15 @@ go build -o build/chu.exe .   # Windows；其他平台去掉 .exe
 ## 仓库结构
 
 ```
-main.go            Wails 入口，embed 前端产物
-app.go             后端：资源存储、部署、宿主配置读写
-frontend/          React 前端（Vite + Tailwind）
-DESIGN.md          视觉规范
-PRODUCT.md         产品定义
+main.go                    Wails 入口，embed 前端产物
+app.go                     后端：资源存储、部署、宿主配置读写
+frontend/src/App.tsx       前端初始化与路由入口
+frontend/src/pages/        页面及页面局部状态
+frontend/src/components/   跨页面 UI 和功能组件
+frontend/src/stores/       Zustand 全局状态与后端操作
+frontend/src/lib/api.ts    Wails API 边界与浏览器模拟数据
+DESIGN.md                  视觉规范
+PRODUCT.md                 产品定义
 ```
+
+前端只把 Snapshot、全局操作状态、通知和后端动作放入 Zustand。搜索词、轮播位置、当前选中项和表单草稿保留在所属页面，避免无关页面订阅临时 UI 状态。直接运行 Vite 时 `window.go.main.App` 不存在，`api.ts` 会使用内存模拟数据；真实配置写入必须在 Wails 环境验证。
