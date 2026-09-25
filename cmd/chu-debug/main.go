@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/liudingchao/chu/internal/debugserver"
+	"github.com/chu-app/chu/internal/debugserver"
 )
 
 func main() {
