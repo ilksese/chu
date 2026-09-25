@@ -35,3 +35,8 @@
 - 前端验证：`pnpm --dir frontend lint && pnpm --dir frontend build`；当前没有前端测试套件。
 - 桌面集成/打包：`wails build`，产物位于忽略目录 `build/bin/`。直接 `go build` 前必须先运行 `pnpm --dir frontend build`，否则嵌入的是旧前端产物。
 - `scripts/test-windows-build.sh` 测试的是“把仓库当 Wails 模板生成新项目”，不是本应用的常规测试。
+
+## 桌面调试
+
+- 调试通道默认关闭，只在设置 `VITE_CHU_DEBUG_WS` 后打进页面。命令和抓手见 `references/debug.md`。
+- Linux/X11 不要恢复 WebKit DMA-BUF 合成或页面级 `ViewTransition`，否则会黑屏或切页崩溃。Debian 13 构建必须带 `-tags webkit2_41`。

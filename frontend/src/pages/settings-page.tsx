@@ -20,6 +20,11 @@ export function SettingsPage() {
   );
 
   useEffect(() => {
+    const summary = snapshot.hosts
+      .map((host) => `${host.id}:${typeof host.format}:${host.format ?? "nil"}`)
+      .join(",");
+    console.info(`[chu] settings hosts=${snapshot.hosts.length} ${summary}`);
+    window.runtime?.LogInfo?.(`[chu] settings hosts=${snapshot.hosts.length} ${summary}`);
     setDrafts(Object.fromEntries(snapshot.hosts.map((host) => [host.id, pathsFromHost(host)])));
   }, [snapshot.hosts]);
 
