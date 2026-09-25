@@ -316,19 +316,6 @@
     font-weight: 600;
   }
 
-  .profile {
-    display: grid;
-    width: 34px;
-    height: 34px;
-    place-items: center;
-    color: var(--pk-black-outline);
-    font-size: 10px;
-    font-weight: 800;
-    background: var(--pk-yellow-primary);
-    border: 2px solid var(--pk-black-outline);
-    border-radius: 50%;
-  }
-
   .preview-badge,
   .format-badge,
   .badge {
@@ -396,7 +383,6 @@
 
   .page-heading,
   .section-heading,
-  .showcase-heading,
   .library-toolbar {
     display: flex;
     align-items: center;
@@ -408,28 +394,12 @@
     margin-bottom: 24px;
   }
 
-  .page-heading h1,
-  .section-heading h2,
-  .showcase-heading h2,
   .dialog h2,
-  .inspector h2,
   .settings-host h2,
   .settings-aside h2 {
     margin: 0;
     font-weight: 800;
     line-height: 1.2;
-  }
-
-  .page-heading h1 {
-    font-size: 36px;
-  }
-
-  .page-heading p,
-  .showcase-heading p {
-    margin: 7px 0 0;
-    color: var(--pk-brown-fur);
-    font-size: 14px;
-    line-height: 1.5;
   }
 
   .button {
@@ -522,10 +492,6 @@
 
   .showcase:focus-visible {
     outline-offset: 4px;
-  }
-
-  .showcase-heading h2 {
-    font-size: 20px;
   }
 
   .carousel-actions {
@@ -793,8 +759,7 @@
   .stat-icon,
   .host-mark,
   .resource-icon,
-  .empty-icon,
-  .insight-icon {
+  .empty-icon {
     display: grid;
     flex: 0 0 auto;
     place-items: center;
@@ -816,7 +781,6 @@
   .stat-blue { color: var(--color-info); background: color-mix(in srgb, var(--color-info) 11%, white); }
   .stat-amber { color: var(--pk-brown-fur); background: color-mix(in srgb, var(--color-warning) 18%, white); }
 
-  .overview-lower,
   .library-layout,
   .settings-layout {
     display: grid;
@@ -831,11 +795,8 @@
   }
 
   .section-heading {
+    justify-content: flex-end;
     margin-bottom: 12px;
-  }
-
-  .section-heading h2 {
-    font-size: 20px;
   }
 
   .host-grid {
@@ -912,65 +873,12 @@
   .status-ready { background: var(--color-success); }
   .status-offline { background: var(--neutral-300); }
 
-  .insight-panel,
   .resource-panel,
-  .inspector,
   .settings-host,
   .settings-aside {
     background: var(--bg-surface);
     border: 2px solid var(--pk-black-outline);
     border-radius: 8px;
-  }
-
-  .insight-panel {
-    padding: 20px;
-    box-shadow: var(--shadow-neo);
-  }
-
-  .insight-icon {
-    width: 42px;
-    height: 42px;
-    background: var(--pk-yellow-primary);
-  }
-
-  .insight-icon svg {
-    width: 20px;
-  }
-
-  .insight-panel h3 {
-    margin: 22px 0 8px;
-    font-size: 18px;
-  }
-
-  .insight-panel p {
-    margin: 0;
-    color: var(--pk-brown-fur);
-    font-size: 12px;
-    line-height: 1.65;
-  }
-
-  .guard-list {
-    display: grid;
-    gap: 10px;
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid var(--pk-brown-fur);
-  }
-
-  .guard-list span {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-  }
-
-  .guard-list svg {
-    width: 14px;
-    color: var(--color-success);
-  }
-
-  .resource-page-heading {
-    margin-bottom: 20px;
   }
 
   .library-toolbar {
@@ -1021,7 +929,7 @@
   }
 
   .library-layout {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr);
     margin-top: 0;
   }
 
@@ -1041,7 +949,7 @@
   .resource-table-head,
   .resource-row {
     display: grid;
-    grid-template-columns: 40px minmax(220px, 1fr) 138px 26px;
+    grid-template-columns: 40px minmax(220px, 1fr) 138px;
     gap: 12px;
     align-items: center;
   }
@@ -1070,21 +978,6 @@
     background: var(--bg-surface);
     border: 0;
     border-bottom: 1px solid var(--pk-brown-fur);
-    cursor: pointer;
-  }
-
-  .resource-select {
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    right: 188px;
-    bottom: 0;
-    left: 0;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    cursor: pointer;
   }
 
   .resource-row > .resource-icon,
@@ -1107,11 +1000,6 @@
 
   .resource-row:hover {
     background: color-mix(in srgb, var(--pk-yellow-primary) 8%, white);
-  }
-
-  .resource-row-selected {
-    background: color-mix(in srgb, var(--pk-yellow-primary) 14%, white);
-    box-shadow: inset 4px 0 0 var(--pk-yellow-primary);
   }
 
   .resource-icon {
@@ -1252,7 +1140,6 @@
     opacity: 0.45;
   }
 
-  .row-chevron,
   .row-action {
     width: 17px;
     color: var(--pk-brown-fur);
@@ -1297,8 +1184,7 @@
     width: 13px;
   }
 
-  .empty-state,
-  .empty-inspector {
+  .empty-state {
     display: grid;
     min-height: 280px;
     place-items: center;
@@ -1328,99 +1214,11 @@
     width: 19px;
   }
 
-  .inspector,
   .settings-aside {
     position: sticky;
     top: 88px;
     padding: 18px;
     box-shadow: var(--shadow-neo-sm);
-  }
-
-  .inspector > header {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--pk-brown-fur);
-  }
-
-  .inspector h2 {
-    font-size: 16px;
-    overflow-wrap: anywhere;
-  }
-
-  .inspector > p {
-    margin: 16px 0;
-    color: var(--pk-brown-fur);
-    font-size: 12px;
-    line-height: 1.65;
-  }
-
-  .inspector dl {
-    margin: 0;
-  }
-
-  .inspector dl > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 9px 0;
-    font-size: 11px;
-    border-top: 1px solid var(--neutral-200);
-  }
-
-  .inspector dt {
-    color: var(--pk-brown-fur);
-  }
-
-  .inspector dd {
-    margin: 0;
-    text-align: right;
-  }
-
-  .inspector h3 {
-    margin: 22px 0 10px;
-    font-size: 12px;
-  }
-
-  .inspector-hosts {
-    display: grid;
-    gap: 8px;
-  }
-
-  .inspector-hosts > div {
-    display: grid;
-    grid-template-columns: 30px minmax(0, 1fr) 8px;
-    align-items: center;
-    gap: 9px;
-    padding: 9px;
-    background: var(--neutral-100);
-    border: 1px solid var(--pk-black-outline);
-    border-radius: 6px;
-  }
-
-  .inspector-hosts span {
-    display: grid;
-  }
-
-  .inspector-hosts strong {
-    font-size: 11px;
-  }
-
-  .inspector-hosts small {
-    margin-top: 2px;
-    color: var(--pk-brown-fur);
-    font-size: 9px;
-  }
-
-  .empty-inspector {
-    min-height: 260px;
-    gap: 9px;
-    font-size: 11px;
-  }
-
-  .empty-inspector svg {
-    width: 22px;
   }
 
   .settings-layout {
@@ -1720,7 +1518,6 @@
     border-bottom: 1px solid var(--pk-black-outline);
   }
 
-  .overview-lower,
   .library-layout,
   .settings-layout {
     grid-template-columns: minmax(0, 1fr) 270px;

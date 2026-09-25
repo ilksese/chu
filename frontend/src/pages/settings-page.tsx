@@ -30,12 +30,6 @@ export function SettingsPage() {
 
   return (
     <>
-      <section className="page-heading">
-        <div>
-          <h1>宿主与路径</h1>
-          <p>自动发现结果可作为后续手动路径配置的基础。</p>
-        </div>
-      </section>
       <section className="settings-layout">
         <div className="settings-list">
           {snapshot.hosts.map((host) => {

@@ -1,4 +1,4 @@
-import { startTransition, type ReactNode } from "react";
+import { startTransition, useEffect, type ReactNode } from "react";
 import { Box, Check, ChevronRight, CircleAlert, Command, RefreshCw, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { navigation, viewFromPath } from "@/app/navigation";
@@ -17,6 +17,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const refresh = useAppStore((state) => state.refresh);
   const clearNotice = useAppStore((state) => state.clearNotice);
   const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(clearNotice, 2000);
+    return () => window.clearTimeout(timer);
+  }, [notice, clearNotice]);
 
   function selectView(path: string) {
     startTransition(() => {
@@ -100,9 +106,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <RefreshCw className={busy === "refresh" ? "spin" : ""} />
               </button>
-              <span className="profile" title="本地用户">
-                LD
-              </span>
             </div>
           </header>
 

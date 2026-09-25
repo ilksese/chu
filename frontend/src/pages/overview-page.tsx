@@ -3,23 +3,19 @@ import {
   ArrowLeft,
   ArrowRight,
   Bot,
-  Check,
   CircleAlert,
   FolderCog,
   Link2,
   MoveHorizontal,
   Network,
-  Plus,
-  ShieldCheck,
   Sparkles,
   TerminalSquare,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { viewPaths } from "@/app/navigation";
-import { AddResourceDialog } from "@/components/add-resource-dialog";
 import { HostMark, StatusDot } from "@/components/host-controls";
-import { resourceKinds, type ResourceKind } from "@/lib/resources";
+import type { ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
 
 type ShowcaseItem = {
@@ -74,10 +70,6 @@ function FeatureCarousel({
       }}
     >
       <div className="showcase-heading">
-        <div>
-          <h2>能力橱窗</h2>
-          <p>横向拖动，浏览并进入你的 Agent 资源。</p>
-        </div>
         <div className="carousel-actions">
           <button
             type="button"
@@ -199,9 +191,6 @@ export function OverviewPage() {
   const snapshot = useAppStore((state) => state.snapshot);
   const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [dialog, setDialog] = useState<ResourceKind>();
-  const dialogTrigger = useRef<HTMLButtonElement>(null);
-  const activeKind = resourceKinds[carouselIndex];
   const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
   const activeDeployments = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents].reduce(
     (total, item) => total + Object.values(item.enabledOn).filter(Boolean).length,
@@ -243,24 +232,6 @@ export function OverviewPage() {
 
   return (
     <>
-      <section className="page-heading home-heading">
-        <div>
-          <h1>Agent 控制台</h1>
-          <p>统一维护资源，按宿主独立交付。</p>
-        </div>
-        <button
-          type="button"
-          className="button button-primary"
-          onClick={(event) => {
-            dialogTrigger.current = event.currentTarget;
-            setDialog(activeKind);
-          }}
-        >
-          <Plus />
-          添加资源
-        </button>
-      </section>
-
       <FeatureCarousel
         items={showcaseItems}
         activeIndex={carouselIndex}
@@ -318,62 +289,29 @@ export function OverviewPage() {
         </article>
       </section>
 
-      <section className="overview-lower">
-        <div className="host-band">
-          <div className="section-heading">
-            <h2>Agent 宿主</h2>
-            <button type="button" className="text-button" onClick={() => openView("settings")}>
-              查看路径 <ArrowRight />
-            </button>
-          </div>
-          <div className="host-grid">
-            {snapshot.hosts.map((host) => (
-              <article key={host.id} className="host-card">
-                <HostMark host={host} />
-                <div>
-                  <strong>{host.name}</strong>
-                  <span>
-                    <StatusDot ready={host.installed} />
-                    {host.installed ? "已连接" : "未检测到"}
-                  </span>
-                </div>
-                <code>{host.format.toUpperCase()}</code>
-              </article>
-            ))}
-          </div>
+      <section className="host-band">
+        <div className="section-heading">
+          <button type="button" className="text-button" onClick={() => openView("settings")}>
+            查看路径 <ArrowRight />
+          </button>
         </div>
-        <aside className="insight-panel">
-          <span className="insight-icon">
-            <ShieldCheck />
-          </span>
-          <div>
-            <h3>所有写入都有退路</h3>
-            <p>宿主配置写入前保留上一份备份。检测到外部改动时，Chu 会停止覆盖。</p>
-          </div>
-          <div className="guard-list">
-            <span>
-              <Check />
-              同名冲突阻断
-            </span>
-            <span>
-              <Check />
-              copy 改动保护
-            </span>
-            <span>
-              <Check />
-              敏感值默认掩码
-            </span>
-          </div>
-        </aside>
+        <div className="host-grid">
+          {snapshot.hosts.map((host) => (
+            <article key={host.id} className="host-card">
+              <HostMark host={host} />
+              <div>
+                <strong>{host.name}</strong>
+                <span>
+                  <StatusDot ready={host.installed} />
+                  {host.installed ? "已连接" : "未检测到"}
+                </span>
+              </div>
+              <code>{host.format.toUpperCase()}</code>
+            </article>
+          ))}
+        </div>
       </section>
 
-      {dialog ? (
-        <AddResourceDialog
-          kind={dialog}
-          onClose={() => setDialog(undefined)}
-          returnFocus={dialogTrigger.current}
-        />
-      ) : null}
     </>
   );
 }

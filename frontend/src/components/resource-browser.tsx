@@ -1,5 +1,5 @@
-import { Bot, ChevronRight, Code2, Download, KeyRound, Network, Sparkles, Zap } from "lucide-react";
-import { HostMark, StatusDot, Switch } from "@/components/host-controls";
+import { Bot, Download, KeyRound, Network, Sparkles, Zap } from "lucide-react";
+import { Switch } from "@/components/host-controls";
 import type { Host, MCP, Skill } from "@/lib/api";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
 
@@ -14,8 +14,6 @@ export function ResourceList({
   items,
   hosts,
   busy,
-  selectedID,
-  onSelect,
   onToggle,
   onImport,
   onTest,
@@ -24,8 +22,6 @@ export function ResourceList({
   items: Resource[];
   hosts: Host[];
   busy: string;
-  selectedID?: string;
-  onSelect: (item: Resource) => void;
   onToggle: (item: Resource, hostID: string, enabled: boolean) => void;
   onImport: (item: Resource) => void;
   onTest: (item: MCP) => void;
@@ -57,14 +53,8 @@ export function ResourceList({
       {items.map((item) => (
         <div
           key={item.id}
-          className={`resource-row ${selectedID === item.id ? "resource-row-selected" : ""}`}
+          className="resource-row"
         >
-          <button
-            type="button"
-            className="resource-select"
-            aria-label={`查看 ${item.name}`}
-            onClick={() => onSelect(item)}
-          />
           <span className={`resource-icon resource-icon-${kind}`}>
             <ResourceIcon kind={kind} />
           </span>
@@ -122,73 +112,9 @@ export function ResourceList({
             >
               <Zap />
             </button>
-          ) : (
-            <ChevronRight className="row-chevron" aria-hidden="true" />
-          )}
+          ) : null}
         </div>
       ))}
     </div>
-  );
-}
-
-export function ResourceInspector({
-  item,
-  kind,
-  hosts,
-}: {
-  item?: Resource;
-  kind: ResourceKind;
-  hosts: Host[];
-}) {
-  if (!item)
-    return (
-      <aside className="inspector">
-        <div className="empty-inspector">
-          <Code2 />
-          <span>选择一个条目查看部署详情</span>
-        </div>
-      </aside>
-    );
-  return (
-    <aside className="inspector">
-      <header>
-        <span className={`resource-icon resource-icon-${kind}`}>
-          <ResourceIcon kind={kind} />
-        </span>
-        <div>
-          <h2>{item.name}</h2>
-        </div>
-      </header>
-      <p>{item.description || "未填写描述"}</p>
-      <dl>
-        <div>
-          <dt>管理状态</dt>
-          <dd>{item.managed ? "Chu 托管" : "等待导入"}</dd>
-        </div>
-        <div>
-          <dt>类型</dt>
-          <dd>{resourceMeta(item, kind)}</dd>
-        </div>
-      </dl>
-      <h3>宿主部署</h3>
-      <div className="inspector-hosts">
-        {hosts.map((host) => (
-          <div key={host.id}>
-            <HostMark host={host} compact />
-            <span>
-              <strong>{host.name}</strong>
-              <small>
-                {item.enabledOn[host.id]
-                  ? kind === "skills"
-                    ? (item as Skill).modeByHost?.[host.id] || "已启用"
-                    : "已启用"
-                  : "未启用"}
-              </small>
-            </span>
-            <StatusDot ready={Boolean(item.enabledOn[host.id])} />
-          </div>
-        ))}
-      </div>
-    </aside>
   );
 }
