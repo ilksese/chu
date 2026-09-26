@@ -501,10 +501,13 @@ button {
   width: 38px;
   height: 38px;
   place-items: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-  font-weight: 800;
+  overflow: hidden;
   border-radius: 7px;
+}
+
+.host-icon {
+  width: 100%;
+  height: 100%;
 }
 
 .host-mark-compact {

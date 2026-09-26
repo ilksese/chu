@@ -1,12 +1,13 @@
 import type { Host } from "@/lib/api";
+import { HostIcon } from "@/components/host-icons";
 
 export function HostMark({ host, compact = false }: { host: Host; compact?: boolean }) {
   return (
     <span
       className={`host-mark host-mark-${host.id} ${compact ? "host-mark-compact" : ""}`}
-      aria-hidden="true"
+      title={host.name}
     >
-      {host.name}
+      <HostIcon id={host.id} />
     </span>
   );
 }
