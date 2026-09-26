@@ -1,8 +1,8 @@
 import { useDeferredValue, useRef, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, RefreshCw, Search } from "lucide-react";
 import { AddResourceDialog } from "@/components/add-resource-dialog";
 import { ResourceList } from "@/components/resource-browser";
-import type { MCP } from "@/lib/api";
+import type { MCP, SkillUpdate } from "@/lib/api";
 import { resourcesFor, type ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
 
@@ -18,7 +18,11 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const toggleResource = useAppStore((state) => state.toggleResource);
   const importSkill = useAppStore((state) => state.importSkill);
   const testMCP = useAppStore((state) => state.testMCP);
+  const checkSkillUpdates = useAppStore((state) => state.checkSkillUpdates);
+  const updateSkill = useAppStore((state) => state.updateSkill);
+  const removeSkill = useAppStore((state) => state.removeSkill);
   const [search, setSearch] = useState("");
+  const [updates, setUpdates] = useState<SkillUpdate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const dialogTrigger = useRef<HTMLButtonElement>(null);
   const deferredSearch = useDeferredValue(search);
@@ -32,6 +36,17 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   return (
     <>
       <section className="page-heading">
+        {kind === "skills" ? (
+          <button
+            type="button"
+            className="button"
+            disabled={busy === "updates:skills"}
+            onClick={() => void checkSkillUpdates().then(setUpdates)}
+          >
+            <RefreshCw className={busy === "updates:skills" ? "spin" : ""} />
+            检查更新
+          </button>
+        ) : null}
         <button
           ref={dialogTrigger}
           type="button"
@@ -66,6 +81,9 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
             }
             onImport={(item) => void importSkill(item)}
             onTest={(item: MCP) => void testMCP(item.id)}
+            updates={kind === "skills" ? updates : []}
+            onUpdate={(id) => void updateSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
+            onRemove={(id) => void removeSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
           />
         </div>
       </section>

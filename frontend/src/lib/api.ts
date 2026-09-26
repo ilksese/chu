@@ -14,12 +14,24 @@ export type Skill = {
   id: string
   name: string
   description: string
-  repository: string
-  version: string
+  tracked: boolean
   source: string
   managed: boolean
   enabledOn: Record<string, boolean>
   modeByHost: Record<string, string>
+}
+
+export type SkillCandidate = {
+  name: string
+  description: string
+  path: string
+  installed: boolean
+}
+
+export type SkillUpdate = {
+  id: string
+  name: string
+  status: "update" | "deleted" | "ambiguous"
 }
 
 export type MCP = {
@@ -75,7 +87,11 @@ export type AgentInput = {
 type AppAPI = {
   GetSnapshot: () => Promise<Snapshot>
   Refresh: () => Promise<Snapshot>
-  InstallSkill: (repository: string, subdir: string, name: string) => Promise<Snapshot>
+  PreviewSkills: (repository: string) => Promise<SkillCandidate[]>
+  InstallSkills: (repository: string, paths: string[]) => Promise<Snapshot>
+  CheckSkillUpdates: () => Promise<SkillUpdate[]>
+  UpdateSkill: (skillID: string) => Promise<Snapshot>
+  RemoveSkill: (skillID: string) => Promise<Snapshot>
   ImportSkill: (hostID: string, name: string) => Promise<Snapshot>
   ToggleSkill: (skillID: string, hostID: string, enabled: boolean) => Promise<Snapshot>
   AddMCP: (input: MCPInput) => Promise<Snapshot>
@@ -102,9 +118,9 @@ let demoSnapshot: Snapshot = {
     { id: "codex", name: "Codex", description: "OpenAI coding Agent", installed: false, status: "not-found", configPath: "~/.codex/config.toml", skillPath: "~/.codex/skills", agentPath: "~/.codex/agents", format: "toml" },
   ],
   skills: [
-    { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", repository: "https://github.com/example/agent-skills", version: "main", source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
-    { id: "release-notes", name: "release-notes", description: "从提交历史生成可发布的变更说明", repository: "https://github.com/example/release-notes", version: "main", source: "~/.chu/skills/release-notes", managed: true, enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "copy" } },
-    { id: "existing-skill", name: "frontend-audit", description: "在 Claude Code 中发现，尚未纳入 Chu", repository: "", version: "", source: "~/.claude/skills/frontend-audit", managed: false, enabledOn: { claude: true }, modeByHost: { claude: "external" } },
+    { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", tracked: true, source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
+    { id: "release-notes", name: "release-notes", description: "从提交历史生成可发布的变更说明", tracked: true, source: "~/.chu/skills/release-notes", managed: true, enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "copy" } },
+    { id: "existing-skill", name: "frontend-audit", description: "在 Claude Code 中发现，尚未纳入 Chu", tracked: false, source: "~/.claude/skills/frontend-audit", managed: false, enabledOn: { claude: true }, modeByHost: { claude: "external" } },
   ],
   mcps: [
     { id: "filesystem", name: "filesystem", description: "受控访问本地项目文件", type: "stdio", endpoint: "", command: "npx", hasCredentials: false, managed: true, enabledOn: { opencode: true, claude: true, codex: false } },
@@ -135,18 +151,47 @@ export async function refreshSnapshot() {
   return backend ? backend.Refresh() : demoSnapshot
 }
 
-export async function installSkill(repository: string, subdir: string, name: string) {
+export async function previewSkills(repository: string): Promise<SkillCandidate[]> {
   const backend = api()
-  if (backend) return backend.InstallSkill(repository, subdir, name)
-  const resolvedName = name || repository.split("/").at(-1)?.replace(/\.git$/, "") || "new-skill"
-  demoSnapshot = { ...demoSnapshot, skills: [...demoSnapshot.skills, { id: resolvedName, name: resolvedName, description: "新安装的 Git skill", repository, version: "main", source: `~/.chu/skills/${resolvedName}`, managed: true, enabledOn: {}, modeByHost: {} }] }
+  if (backend) return backend.PreviewSkills(repository)
+  return [
+    { name: "grill-me", description: "A relentless interview to sharpen a plan or design.", path: "skills/productivity/grill-me", installed: false },
+    { name: "handoff", description: "Compact the current conversation into a handoff document.", path: "skills/productivity/handoff", installed: false },
+  ]
+}
+
+export async function installSkills(repository: string, paths: string[]) {
+  const backend = api()
+  if (backend) return backend.InstallSkills(repository, paths)
+  const added = paths.map((path) => {
+    const name = path.split("/").at(-1) || "new-skill"
+    return { id: name, name, description: "新安装的 Git skill", tracked: true, source: `~/.chu/skills/${name}`, managed: true, enabledOn: {}, modeByHost: {} }
+  })
+  demoSnapshot = { ...demoSnapshot, skills: [...demoSnapshot.skills, ...added] }
+  return demoSnapshot
+}
+
+export async function checkSkillUpdates(): Promise<SkillUpdate[]> {
+  const backend = api()
+  return backend ? backend.CheckSkillUpdates() : []
+}
+
+export async function updateSkill(skillID: string) {
+  const backend = api()
+  return backend ? backend.UpdateSkill(skillID) : demoSnapshot
+}
+
+export async function removeSkill(skillID: string) {
+  const backend = api()
+  if (backend) return backend.RemoveSkill(skillID)
+  demoSnapshot = { ...demoSnapshot, skills: demoSnapshot.skills.filter((item) => item.id !== skillID) }
   return demoSnapshot
 }
 
 export async function importSkill(hostID: string, name: string) {
   const backend = api()
   if (backend) return backend.ImportSkill(hostID, name)
-  demoSnapshot = { ...demoSnapshot, skills: demoSnapshot.skills.map((item) => item.name === name ? { ...item, id: item.name, managed: true, source: `~/.chu/skills/${item.name}`, version: "imported", modeByHost: { [hostID]: "link" } } : item) }
+  demoSnapshot = { ...demoSnapshot, skills: demoSnapshot.skills.map((item) => item.name === name ? { ...item, id: item.name, managed: true, tracked: false, source: `~/.chu/skills/${item.name}`, modeByHost: { [hostID]: "link" } } : item) }
   return demoSnapshot
 }
 

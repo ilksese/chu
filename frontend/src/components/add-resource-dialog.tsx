@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { GitBranch, Plus, X } from "lucide-react";
-import type { AgentInput, MCP, MCPInput } from "@/lib/api";
+import { GitBranch, Plus, Search, X } from "lucide-react";
+import type { AgentInput, MCP, MCPInput, SkillCandidate } from "@/lib/api";
 import type { ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
 
@@ -14,10 +14,15 @@ export function AddResourceDialog({
   returnFocus?: HTMLElement | null;
 }) {
   const [mcpType, setMCPType] = useState<MCP["type"]>("stdio");
+  const [repository, setRepository] = useState("");
+  const repositoryRef = useRef<HTMLInputElement>(null);
+  const [candidates, setCandidates] = useState<SkillCandidate[]>();
+  const [selected, setSelected] = useState<string[]>([]);
   const dialogRef = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
   const busy = useAppStore((state) => state.busy);
-  const installSkill = useAppStore((state) => state.installSkill);
+  const previewSkills = useAppStore((state) => state.previewSkills);
+  const installSkills = useAppStore((state) => state.installSkills);
   const addMCP = useAppStore((state) => state.addMCP);
   const addAgent = useAppStore((state) => state.addAgent);
   onCloseRef.current = onClose;
@@ -61,15 +66,28 @@ export function AddResourceDialog({
     };
   }, [returnFocus]);
 
+  function repositoryValue() {
+    return (repositoryRef.current?.value || repository).trim();
+  }
+
+  async function findSkills() {
+    const found = await previewSkills(repositoryValue());
+    setCandidates(found);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (kind === "skills" && !candidates) {
+      await findSkills();
+      return;
+    }
     const values = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<
       string,
       string
     >;
     const saved =
       kind === "skills"
-        ? await installSkill(values.repository, values.subdir || "", values.name || "")
+        ? await installSkills(repositoryValue(), selected)
         : kind === "mcps"
           ? await addMCP({
               name: values.name,
@@ -125,28 +143,50 @@ export function AddResourceDialog({
           {kind === "skills" ? (
             <>
               <label>
-                公开 HTTPS 仓库
+                仓库
                 <input
+                  ref={repositoryRef}
                   name="repository"
-                  type="url"
+                  type="text"
                   required
                   autoFocus
-                  placeholder="https://github.com/org/skills.git"
+                  defaultValue=""
+                  onInput={(event) => {
+                    setRepository(event.currentTarget.value);
+                    setCandidates(undefined);
+                    setSelected([]);
+                  }}
+                  placeholder="owner/repo 或 https://github.com/org/skills"
                 />
               </label>
-              <div className="form-grid">
-                <label>
-                  仓库子目录
-                  <input name="subdir" placeholder="skills/code-review" />
-                </label>
-                <label>
-                  本地名称
-                  <input name="name" placeholder="自动识别" />
-                </label>
-              </div>
+              {candidates ? (
+                <div className="skill-picker">
+                  {candidates.length === 0 ? <p>没有发现可安装的 skill。</p> : null}
+                  {candidates.map((item) => (
+                    <label key={item.path} className={selected.includes(item.path) ? "skill-picked" : ""}>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(item.path)}
+                        disabled={item.installed}
+                        onChange={(event) =>
+                          setSelected((current) =>
+                            event.target.checked
+                              ? [...current, item.path]
+                              : current.filter((path) => path !== item.path),
+                          )
+                        }
+                      />
+                      <span>
+                        <strong>{item.name}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : null}
               <p className="form-note">
                 <GitBranch />
-                只读安装到 <code>~/.chu/skills</code>，更新由你手动触发。
+                默认不勾选。安装后写入 <code>~/.chu/chu-lock.json</code>。
               </p>
             </>
           ) : null}
@@ -238,14 +278,25 @@ export function AddResourceDialog({
             <button type="button" className="button button-secondary" onClick={onClose}>
               取消
             </button>
-            <button
-              type="submit"
-              className="button button-primary"
-              disabled={busy === `add:${kind}`}
-            >
-              <Plus />
-              {kind === "skills" ? "安装" : "创建"}
-            </button>
+            {kind === "skills" && !candidates ? (
+              <button
+                type="submit"
+                className="button button-primary"
+                disabled={busy === "preview:skills" || repositoryValue() === ""}
+              >
+                <Search />
+                {busy === "preview:skills" ? "正在查找…" : "查找 Skill"}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="button button-primary"
+                disabled={busy === `add:${kind}` || (kind === "skills" && selected.length === 0)}
+              >
+                <Plus />
+                {kind === "skills" ? `安装 ${selected.length || ""}`.trim() : "创建"}
+              </button>
+            )}
           </footer>
         </form>
       </section>

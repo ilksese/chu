@@ -450,11 +450,15 @@
 
   .button:disabled {
     color: var(--neutral-400);
-    cursor: wait;
+    cursor: not-allowed;
     background: var(--neutral-200);
     border-color: var(--neutral-300);
     box-shadow: none;
     transform: none;
+  }
+
+  .button:disabled.button-primary {
+    cursor: wait;
   }
 
   .text-button {
@@ -1422,6 +1426,39 @@
     color: var(--pk-brown-fur);
     font-size: 11px;
     font-weight: 700;
+  }
+
+  .skill-picker {
+    display: grid;
+    max-height: 280px;
+    gap: 8px;
+    overflow: auto;
+  }
+
+  .skill-picker label {
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: start;
+    padding: 8px;
+    background: var(--neutral-100);
+    border: 2px solid var(--pk-black-outline);
+    border-radius: 6px;
+  }
+
+  .skill-picker input {
+    width: 16px;
+    min-height: 16px;
+    margin-top: 2px;
+    accent-color: var(--pk-black-outline);
+  }
+
+  .skill-picker .skill-picked {
+    background: var(--pk-yellow-primary);
+  }
+
+  .skill-picker small {
+    display: block;
+    color: var(--pk-brown-fur);
+    font-weight: 500;
   }
 
   .dialog-form input,

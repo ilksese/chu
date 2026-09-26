@@ -6,13 +6,19 @@ export function AddAgent(arg1:main.AgentInput):Promise<main.Snapshot>;
 
 export function AddMCP(arg1:main.MCPInput):Promise<main.Snapshot>;
 
+export function CheckSkillUpdates():Promise<Array<main.SkillUpdate>>;
+
 export function GetSnapshot():Promise<main.Snapshot>;
 
 export function ImportSkill(arg1:string,arg2:string):Promise<main.Snapshot>;
 
-export function InstallSkill(arg1:string,arg2:string,arg3:string):Promise<main.Snapshot>;
+export function InstallSkills(arg1:string,arg2:Array<string>):Promise<main.Snapshot>;
+
+export function PreviewSkills(arg1:string):Promise<Array<main.SkillCandidate>>;
 
 export function Refresh():Promise<main.Snapshot>;
+
+export function RemoveSkill(arg1:string):Promise<main.Snapshot>;
 
 export function RestoreBackup(arg1:string):Promise<main.Snapshot>;
 
@@ -25,3 +31,5 @@ export function ToggleMCP(arg1:string,arg2:string,arg3:boolean):Promise<main.Sna
 export function ToggleSkill(arg1:string,arg2:string,arg3:boolean):Promise<main.Snapshot>;
 
 export function UpdateHostPaths(arg1:string,arg2:string,arg3:string,arg4:string):Promise<main.Snapshot>;
+
+export function UpdateSkill(arg1:string):Promise<main.Snapshot>;

@@ -15,7 +15,7 @@ export function resourceMeta(item: Resource, kind: ResourceKind) {
   if (kind === "skills") {
     const skill = item as Skill;
     return skill.managed
-      ? `${skill.version || "本地"} · ${skill.repository ? "Git" : "导入"}`
+      ? skill.tracked ? "Git · 可更新" : "导入"
       : "宿主中发现";
   }
   if (kind === "mcps") {

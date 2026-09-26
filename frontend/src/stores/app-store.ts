@@ -3,9 +3,13 @@ import {
   addAgent as addAgentAPI,
   addMCP as addMCPAPI,
   getSnapshot,
+  checkSkillUpdates,
   importSkill as importSkillAPI,
-  installSkill as installSkillAPI,
+  installSkills,
+  previewSkills,
   refreshSnapshot,
+  removeSkill,
+  updateSkill,
   restoreBackup,
   testMCP as testMCPAPI,
   toggleAgent,
@@ -15,6 +19,8 @@ import {
   type AgentInput,
   type Host,
   type MCPInput,
+  type SkillCandidate,
+  type SkillUpdate,
   type Snapshot,
 } from "@/lib/api";
 import type { Resource, ResourceKind } from "@/lib/resources";
@@ -47,7 +53,11 @@ type AppStore = {
   ) => Promise<boolean>;
   importSkill: (item: Resource) => Promise<boolean>;
   testMCP: (itemID: string) => Promise<void>;
-  installSkill: (repository: string, subdir: string, name: string) => Promise<boolean>;
+  previewSkills: (repository: string) => Promise<SkillCandidate[]>;
+  installSkills: (repository: string, paths: string[]) => Promise<boolean>;
+  checkSkillUpdates: () => Promise<SkillUpdate[]>;
+  updateSkill: (skillID: string) => Promise<boolean>;
+  removeSkill: (skillID: string) => Promise<boolean>;
   addMCP: (input: MCPInput) => Promise<boolean>;
   addAgent: (input: AgentInput) => Promise<boolean>;
   restoreHost: (host: Host) => Promise<boolean>;
@@ -121,8 +131,34 @@ export const useAppStore = create<AppStore>((set) => {
       }
     },
 
-    installSkill: (repository, subdir, name) =>
-      run("add:skills", () => installSkillAPI(repository, subdir, name), "Skill 安装完成"),
+    previewSkills: async (repository) => {
+      set({ busy: "preview:skills", notice: undefined });
+      try {
+        return await previewSkills(repository);
+      } catch (error) {
+        set({ notice: { message: String(error), error: true } });
+        return [];
+      } finally {
+        set({ busy: "" });
+      }
+    },
+    installSkills: (repository, paths) =>
+      run("add:skills", () => installSkills(repository, paths), "Skill 安装完成"),
+    checkSkillUpdates: async () => {
+      set({ busy: "updates:skills", notice: undefined });
+      try {
+        const updates = await checkSkillUpdates();
+        set({ notice: { message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill" } });
+        return updates;
+      } catch (error) {
+        set({ notice: { message: String(error), error: true } });
+        return [];
+      } finally {
+        set({ busy: "" });
+      }
+    },
+    updateSkill: (skillID) => run(`update:${skillID}`, () => updateSkill(skillID), "Skill 已更新"),
+    removeSkill: (skillID) => run(`remove:${skillID}`, () => removeSkill(skillID), "Skill 已移除"),
     addMCP: (input) => run("add:mcps", () => addMCPAPI(input), "资源已保存到 Chu"),
     addAgent: (input) => run("add:agents", () => addAgentAPI(input), "资源已保存到 Chu"),
     restoreHost: (host) =>

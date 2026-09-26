@@ -1,6 +1,6 @@
 import { Bot, Download, KeyRound, Network, Sparkles, Zap } from "lucide-react";
 import { Switch } from "@/components/host-controls";
-import type { Host, MCP, Skill } from "@/lib/api";
+import type { Host, MCP, Skill, SkillUpdate } from "@/lib/api";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
 
 function ResourceIcon({ kind }: { kind: ResourceKind }) {
@@ -17,6 +17,9 @@ export function ResourceList({
   onToggle,
   onImport,
   onTest,
+  updates = [],
+  onUpdate,
+  onRemove,
 }: {
   kind: ResourceKind;
   items: Resource[];
@@ -25,6 +28,9 @@ export function ResourceList({
   onToggle: (item: Resource, hostID: string, enabled: boolean) => void;
   onImport: (item: Resource) => void;
   onTest: (item: MCP) => void;
+  updates?: SkillUpdate[];
+  onUpdate?: (id: string) => void;
+  onRemove?: (id: string) => void;
 }) {
   if (items.length === 0) {
     return (
@@ -80,6 +86,16 @@ export function ResourceList({
             </span>
             <span className="resource-description">{item.description || "未填写描述"}</span>
             <span className="resource-meta">{resourceMeta(item, kind)}</span>
+            {updates.find((update) => update.id === item.id)?.status === "update" ? (
+              <button type="button" className="text-button" onClick={() => onUpdate?.(item.id)}>
+                更新
+              </button>
+            ) : null}
+            {updates.find((update) => update.id === item.id)?.status === "deleted" ? (
+              <button type="button" className="text-button" onClick={() => onRemove?.(item.id)}>
+                确认移除
+              </button>
+            ) : null}
           </span>
           {!item.managed && kind === "skills" ? (
             <button type="button" className="import-button" onClick={() => onImport(item)}>

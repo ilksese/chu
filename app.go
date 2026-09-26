@@ -54,9 +54,7 @@ type storedSkill struct {
 	ID          string                `json:"id"`
 	Name        string                `json:"name"`
 	Description string                `json:"description,omitempty"`
-	Repository  string                `json:"repository,omitempty"`
 	SourceDir   string                `json:"sourceDir"`
-	Version     string                `json:"version,omitempty"`
 	Deployments map[string]deployment `json:"deployments,omitempty"`
 }
 
@@ -100,8 +98,7 @@ type SkillView struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
-	Repository  string            `json:"repository"`
-	Version     string            `json:"version"`
+	Tracked     bool              `json:"tracked"`
 	Source      string            `json:"source"`
 	Managed     bool              `json:"managed"`
 	EnabledOn   map[string]bool   `json:"enabledOn"`
@@ -191,61 +188,6 @@ func (a *App) Refresh() Snapshot {
 	return a.GetSnapshot()
 }
 
-func (a *App) InstallSkill(repository, subdir, name string) (Snapshot, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if !isHTTPS(repository) {
-		return a.snapshotLocked(), errors.New("skill 来源必须是公开 HTTPS Git 仓库")
-	}
-	if name == "" {
-		name = filepath.Base(strings.TrimSuffix(repository, "/"))
-		name = strings.TrimSuffix(name, ".git")
-	}
-	name = slug(name)
-	if name == "" {
-		return a.snapshotLocked(), errors.New("无法从仓库地址确定 skill 名称")
-	}
-	for _, item := range a.state.Skills {
-		if item.Name == name {
-			return a.snapshotLocked(), fmt.Errorf("skill %q 已存在", name)
-		}
-	}
-
-	cacheDir := filepath.Join(a.root, "sources", name)
-	if err := os.RemoveAll(cacheDir); err != nil {
-		return a.snapshotLocked(), err
-	}
-	if err := os.MkdirAll(filepath.Dir(cacheDir), 0o700); err != nil {
-		return a.snapshotLocked(), err
-	}
-	cmd := exec.Command("git", "clone", "--depth", "1", repository, cacheDir)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return a.snapshotLocked(), fmt.Errorf("Git clone 失败: %s", strings.TrimSpace(string(output)))
-	}
-	source := filepath.Join(cacheDir, filepath.Clean(subdir))
-	if subdir == "" || subdir == "." {
-		source = cacheDir
-	}
-	if !fileExists(filepath.Join(source, "SKILL.md")) {
-		return a.snapshotLocked(), errors.New("所选目录中没有 SKILL.md")
-	}
-	target := filepath.Join(a.root, "skills", name)
-	if fileExists(target) {
-		return a.snapshotLocked(), fmt.Errorf("中央 skill 目录已存在: %s", target)
-	}
-	if err := copyDir(source, target); err != nil {
-		return a.snapshotLocked(), err
-	}
-	a.state.Skills = append(a.state.Skills, storedSkill{
-		ID: slug(name), Name: name, Description: readSkillDescription(source),
-		Repository: repository, SourceDir: target, Version: "main", Deployments: map[string]deployment{},
-	})
-	if err := a.saveStateLocked(); err != nil {
-		return a.snapshotLocked(), err
-	}
-	return a.snapshotLocked(), nil
-}
-
 func (a *App) ImportSkill(hostID, name string) (Snapshot, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -280,7 +222,7 @@ func (a *App) ImportSkill(hostID, name string) (Snapshot, error) {
 		}
 		mode = "copy"
 	}
-	item := storedSkill{ID: slug(name), Name: name, Description: readSkillDescription(target), SourceDir: target, Version: "imported", Deployments: map[string]deployment{}}
+	item := storedSkill{ID: slug(name), Name: name, Description: readSkillDescription(target), SourceDir: target, Deployments: map[string]deployment{}}
 	item.Deployments[hostID] = deployment{Enabled: true, Mode: mode, Target: source, LastHash: hashPath(source)}
 	a.state.Skills = append(a.state.Skills, item)
 	if err := a.saveStateLocked(); err != nil {
@@ -619,9 +561,11 @@ func (a *App) snapshotLocked() Snapshot {
 		hosts = append(hosts, a.hostView(spec))
 	}
 	skills := make([]SkillView, 0, len(a.state.Skills))
+	lock, _ := a.readSkillLock()
 	for _, item := range a.state.Skills {
 		enabled, modes := deploymentViews(item.Deployments, specs)
-		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: item.Description, Repository: item.Repository, Version: item.Version, Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
+		_, tracked := lock.Skills[item.Name]
+		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: item.Description, Tracked: tracked, Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
 	}
 	skills = append(skills, a.discoveredSkills(specs)...)
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
@@ -734,7 +678,10 @@ func (a *App) loadState() error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, &a.state)
+	if err := json.Unmarshal(data, &a.state); err != nil {
+		return err
+	}
+	return a.migrateSkillSources(data)
 }
 
 func (a *App) saveStateLocked() error {
@@ -1011,7 +958,18 @@ func readSkillDescription(path string) string {
 	if err != nil {
 		return ""
 	}
-	for _, line := range strings.Split(string(data), "\n") {
+	text := strings.ReplaceAll(string(data), "\r\n", "\n")
+	if strings.HasPrefix(text, "---\n") {
+		if end := strings.Index(text, "\n---"); end > 4 {
+			for _, line := range strings.Split(text[4:end], "\n") {
+				key, value, ok := strings.Cut(strings.TrimSpace(line), ":")
+				if ok && strings.EqualFold(strings.TrimSpace(key), "description") {
+					return strings.Trim(strings.TrimSpace(value), `"'`)
+				}
+			}
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#") {
 			return strings.TrimSpace(strings.TrimLeft(line, "#"))

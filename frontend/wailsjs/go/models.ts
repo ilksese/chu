@@ -126,6 +126,40 @@ export namespace main {
 	        this.enabledOn = source["enabledOn"];
 	    }
 	}
+	export class SkillCandidate {
+	    name: string;
+	    description: string;
+	    path: string;
+	    installed: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SkillCandidate(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.path = source["path"];
+	        this.installed = source["installed"];
+	    }
+	}
+	export class SkillUpdate {
+	    id: string;
+	    name: string;
+	    status: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SkillUpdate(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.status = source["status"];
+	    }
+	}
 	export class SkillView {
 	    id: string;
 	    name: string;

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -8,6 +9,84 @@ import (
 func TestSlug(t *testing.T) {
 	if got := slug("Code Review / v2"); got != "code-review-v2" {
 		t.Fatalf("slug() = %q", got)
+	}
+}
+
+func TestDiscoverCachedImpeccable(t *testing.T) {
+	root := filepath.Join(os.Getenv("HOME"), ".chu", "sources", "0f1870cfd1835454918b05ed1b3966ecba6f1f04c02260f8fe6e66f15a271d1e")
+	if !fileExists(root) {
+		t.Skip("cache missing")
+	}
+	found := discoverSkillCandidates(root)
+	if len(found) == 0 || found[0].Name != "impeccable" {
+		t.Fatalf("cached candidates = %#v", found)
+	}
+}
+
+func TestParseSkillSource(t *testing.T) {
+	parsed, err := parseSkillSource("pbakaus/impeccable")
+	if err != nil || parsed.URL != "https://github.com/pbakaus/impeccable" || parsed.Ref != "main" {
+		t.Fatalf("shorthand = %#v %v", parsed, err)
+	}
+	parsed, err = parseSkillSource("https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me")
+	if err != nil || parsed.Ref != "main" || parsed.Subpath != "skills/productivity/grill-me" {
+		t.Fatalf("tree = %#v %v", parsed, err)
+	}
+	parsed, err = parseSkillSource("vercel-labs/agent-skills@web-design-guidelines")
+	if err != nil || parsed.Filter != "web-design-guidelines" {
+		t.Fatalf("filter = %#v %v", parsed, err)
+	}
+}
+
+func TestDiscoverSkillCandidates(t *testing.T) {
+	root := t.TempDir()
+	writeSkill(t, filepath.Join(root, "skills", "productivity", "grill-me"), "grill-me", "A relentless interview.")
+	writeSkill(t, filepath.Join(root, "skills", "productivity"), "not-a-skill", "")
+	found := discoverSkillCandidates(root)
+	if len(found) != 1 || found[0].Name != "grill-me" || found[0].Path != "skills/productivity/grill-me" {
+		t.Fatalf("candidates = %#v", found)
+	}
+
+	agentRoot := t.TempDir()
+	writeSkill(t, filepath.Join(agentRoot, ".agents", "skills", "impeccable"), "impeccable", "Design skill.")
+	writeSkill(t, filepath.Join(agentRoot, ".claude", "skills", "impeccable"), "impeccable", "Duplicate.")
+	found = discoverSkillCandidates(agentRoot)
+	if len(found) != 1 || found[0].Path != ".agents/skills/impeccable" {
+		t.Fatalf("agent candidates = %#v", found)
+	}
+}
+
+func writeSkill(t *testing.T, dir, name, description string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nname: " + name + "\n"
+	if description != "" {
+		body += "description: " + description + "\n"
+	}
+	body += "---\n"
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadSkillDescription(t *testing.T) {
+	directory := t.TempDir()
+	frontmatter := "---\nname: grill-me\ndescription: A relentless interview.\n---\n# Ignored\n"
+	if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte(frontmatter), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := readSkillDescription(directory); got != "A relentless interview." {
+		t.Fatalf("frontmatter description = %q", got)
+	}
+
+	heading := "# Code Review\n\nDetails\n"
+	if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte(heading), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := readSkillDescription(directory); got != "Code Review" {
+		t.Fatalf("heading description = %q", got)
 	}
 }
 
