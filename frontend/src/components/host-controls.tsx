@@ -1,13 +1,12 @@
 import type { Host } from "@/lib/api";
 
 export function HostMark({ host, compact = false }: { host: Host; compact?: boolean }) {
-  const initials = host.id === "opencode" ? "OC" : host.id === "claude" ? "CC" : "CX";
   return (
     <span
       className={`host-mark host-mark-${host.id} ${compact ? "host-mark-compact" : ""}`}
       aria-hidden="true"
     >
-      {initials}
+      {host.name}
     </span>
   );
 }

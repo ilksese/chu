@@ -99,6 +99,7 @@ type SkillView struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Tracked     bool              `json:"tracked"`
+	Repository  string            `json:"repository"`
 	Source      string            `json:"source"`
 	Managed     bool              `json:"managed"`
 	EnabledOn   map[string]bool   `json:"enabledOn"`
@@ -564,12 +565,12 @@ func (a *App) snapshotLocked() Snapshot {
 	lock, _ := a.readSkillLock()
 	for _, item := range a.state.Skills {
 		enabled, modes := deploymentViews(item.Deployments, specs)
-		_, tracked := lock.Skills[item.Name]
+		locked, tracked := lock.Skills[item.Name]
 		description := item.Description
 		if description == "" {
 			description = readSkillDescription(item.SourceDir)
 		}
-		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: description, Tracked: tracked, Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
+		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: description, Tracked: tracked, Repository: skillRepository(locked), Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
 	}
 	skills = append(skills, a.discoveredSkills(specs)...)
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })

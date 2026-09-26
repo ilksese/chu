@@ -14,6 +14,10 @@ export function CheckSkillUpdates() {
   return window['go']['main']['App']['CheckSkillUpdates']();
 }
 
+export function DeleteSkill(arg1) {
+  return window['go']['main']['App']['DeleteSkill'](arg1);
+}
+
 export function GetSnapshot() {
   return window['go']['main']['App']['GetSnapshot']();
 }

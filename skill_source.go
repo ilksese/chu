@@ -220,6 +220,10 @@ func (a *App) UpdateSkill(skillID string) (Snapshot, error) {
 }
 
 func (a *App) RemoveSkill(skillID string) (Snapshot, error) {
+	return a.DeleteSkill(skillID)
+}
+
+func (a *App) DeleteSkill(skillID string) (Snapshot, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	index := -1
@@ -229,7 +233,7 @@ func (a *App) RemoveSkill(skillID string) (Snapshot, error) {
 		}
 	}
 	if index < 0 {
-		return a.snapshotLocked(), errors.New("未知的 skill")
+		return a.snapshotLocked(), errors.New("只能删除 Chu 管理的 skill")
 	}
 	stored := a.state.Skills[index]
 	for _, dep := range stored.Deployments {
@@ -499,6 +503,17 @@ func cleanSubpath(value string) string {
 		return ""
 	}
 	return value
+}
+
+func skillRepository(item skillLockItem) string {
+	if item.Source == "" {
+		return ""
+	}
+	repository := item.Source
+	if item.Ref != "" && item.Ref != "main" {
+		repository += "#" + item.Ref
+	}
+	return repository
 }
 
 func defaultRef(value string) string {

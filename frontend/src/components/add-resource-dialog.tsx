@@ -8,13 +8,15 @@ export function AddResourceDialog({
   kind,
   onClose,
   returnFocus,
+  initialRepository = "",
 }: {
   kind: ResourceKind;
   onClose: () => void;
   returnFocus?: HTMLElement | null;
+  initialRepository?: string;
 }) {
   const [mcpType, setMCPType] = useState<MCP["type"]>("stdio");
-  const [repository, setRepository] = useState("");
+  const [repository, setRepository] = useState(initialRepository);
   const repositoryRef = useRef<HTMLInputElement>(null);
   const [candidates, setCandidates] = useState<SkillCandidate[]>();
   const [selected, setSelected] = useState<string[]>([]);
@@ -29,7 +31,10 @@ export function AddResourceDialog({
 
   useEffect(() => {
     dialogRef.current?.querySelector<HTMLElement>("input, select, textarea")?.focus();
-  }, []);
+    if (kind === "skills" && initialRepository) {
+      void previewSkills(initialRepository).then(setCandidates);
+    }
+  }, [initialRepository, kind, previewSkills]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -150,7 +155,7 @@ export function AddResourceDialog({
                   type="text"
                   required
                   autoFocus
-                  defaultValue=""
+                  defaultValue={initialRepository}
                   onInput={(event) => {
                     setRepository(event.currentTarget.value);
                     setCandidates(undefined);

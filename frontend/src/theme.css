@@ -862,16 +862,19 @@
   }
 
   .host-mark {
-    width: 40px;
+    width: auto;
+    min-width: 40px;
     height: 40px;
-    font-size: 10px;
+    padding: 0 8px;
+    font-size: 11px;
     font-weight: 800;
+    white-space: nowrap;
   }
 
   .host-mark-compact {
-    width: 30px;
     height: 30px;
-    font-size: 8px;
+    padding: 0 6px;
+    font-size: 10px;
   }
 
   .host-mark-opencode { color: var(--pk-black-outline); background: #e5f6ea; }
@@ -965,7 +968,7 @@
   .resource-table-head,
   .resource-row {
     display: grid;
-    grid-template-columns: 40px minmax(220px, 1fr) 138px auto;
+    grid-template-columns: 40px minmax(180px, 1fr) max-content auto;
     gap: 12px;
     align-items: center;
   }
@@ -1031,6 +1034,7 @@
     pointer-events: none;
   }
 
+  .resource-row > .row-actions,
   .resource-row > .host-switches,
   .resource-row > .import-button,
   .resource-row > .row-action,
@@ -1123,7 +1127,8 @@
 
   .host-columns {
     display: grid;
-    grid-template-columns: repeat(3, 38px);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(72px, max-content);
     gap: 8px;
     justify-content: end;
     text-align: center;
@@ -1189,6 +1194,12 @@
     opacity: 0.45;
   }
 
+  .row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+
   .row-action {
     display: grid;
     width: 30px;
@@ -1205,6 +1216,61 @@
   .row-action:hover {
     color: var(--pk-black-outline);
     background: var(--pk-yellow-primary);
+  }
+
+  .row-action-danger:hover {
+    color: white;
+    background: var(--pk-red-thunder);
+  }
+
+  .row-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .delete-popover {
+    position: fixed;
+    position-area: block-start span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    inset: auto;
+    width: min(240px, calc(100vw - 24px));
+    margin: 0;
+    padding: 12px;
+    overflow: visible;
+    color: var(--pk-black-outline);
+    background: white;
+    border: 2px solid var(--pk-black-outline);
+    border-radius: 8px;
+    box-shadow: 4px 4px 0 var(--pk-black-outline);
+  }
+
+  .delete-popover::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    z-index: -1;
+  }
+
+  .delete-popover strong,
+  .delete-popover p {
+    display: block;
+  }
+
+  .delete-popover p {
+    margin: 6px 0 10px;
+    color: var(--pk-brown-fur);
+    font-size: 12px;
+  }
+
+  .delete-popover span {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .delete-popover .button {
+    min-height: 32px;
+    padding: 6px 10px;
   }
 
   .row-action svg {

@@ -165,6 +165,7 @@ export namespace main {
 	    name: string;
 	    description: string;
 	    tracked: boolean;
+	    repository: string;
 	    source: string;
 	    managed: boolean;
 	    enabledOn: Record<string, boolean>;
@@ -180,6 +181,7 @@ export namespace main {
 	        this.name = source["name"];
 	        this.description = source["description"];
 	        this.tracked = source["tracked"];
+	        this.repository = source["repository"];
 	        this.source = source["source"];
 	        this.managed = source["managed"];
 	        this.enabledOn = source["enabledOn"];

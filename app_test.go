@@ -92,6 +92,48 @@ func TestSkillUpdateStatus(t *testing.T) {
 	}
 }
 
+func TestDeleteManagedSkill(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "skills", "tdd")
+	host := filepath.Join(root, "host")
+	writeSkill(t, source, "tdd", "Delete me.")
+	if err := os.MkdirAll(host, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(source, filepath.Join(host, "tdd")); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{root: root, state: appState{Skills: []storedSkill{{
+		ID: "tdd", Name: "tdd", SourceDir: source,
+		Deployments: map[string]deployment{"opencode": {Enabled: true, Mode: "link", Target: filepath.Join(host, "tdd")}},
+	}}}}
+	if err := os.WriteFile(filepath.Join(root, "chu-lock.json"), []byte(`{"version":1,"skills":{"tdd":{"source":"https://github.com/org/skills"}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.DeleteSkill("missing"); err == nil {
+		t.Fatal("unmanaged skill deleted")
+	}
+	if _, err := app.DeleteSkill("tdd"); err != nil {
+		t.Fatal(err)
+	}
+	if fileExists(source) || fileExists(filepath.Join(host, "tdd")) || len(app.state.Skills) != 0 {
+		t.Fatal("skill files or state remain")
+	}
+	lock, err := app.readSkillLock()
+	if err != nil || len(lock.Skills) != 0 {
+		t.Fatalf("lock = %#v %v", lock, err)
+	}
+}
+
+func TestSkillRepository(t *testing.T) {
+	if got := skillRepository(skillLockItem{Source: "https://github.com/org/skills", Ref: "main"}); got != "https://github.com/org/skills" {
+		t.Fatalf("repository = %s", got)
+	}
+	if got := skillRepository(skillLockItem{Source: "https://github.com/org/skills", Ref: "v1"}); got != "https://github.com/org/skills#v1" {
+		t.Fatalf("repository = %s", got)
+	}
+}
+
 func TestResolveSkillPath(t *testing.T) {
 	found := []SkillCandidate{{Name: "design-taste-frontend", Path: "skills/taste-skill"}}
 	got := resolveSkillPath(skillLockItem{SkillPath: "."}, "taste-skill", "", found)

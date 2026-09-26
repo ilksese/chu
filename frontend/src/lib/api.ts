@@ -15,6 +15,7 @@ export type Skill = {
   name: string
   description: string
   tracked: boolean
+  repository: string
   source: string
   managed: boolean
   enabledOn: Record<string, boolean>
@@ -92,6 +93,7 @@ type AppAPI = {
   CheckSkillUpdates: () => Promise<SkillUpdate[]>
   UpdateSkill: (skillID: string) => Promise<Snapshot>
   RemoveSkill: (skillID: string) => Promise<Snapshot>
+  DeleteSkill: (skillID: string) => Promise<Snapshot>
   ImportSkill: (hostID: string, name: string) => Promise<Snapshot>
   ToggleSkill: (skillID: string, hostID: string, enabled: boolean) => Promise<Snapshot>
   AddMCP: (input: MCPInput) => Promise<Snapshot>
@@ -118,9 +120,9 @@ let demoSnapshot: Snapshot = {
     { id: "codex", name: "Codex", description: "OpenAI coding Agent", installed: false, status: "not-found", configPath: "~/.codex/config.toml", skillPath: "~/.codex/skills", agentPath: "~/.codex/agents", format: "toml" },
   ],
   skills: [
-    { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", tracked: true, source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
-    { id: "release-notes", name: "release-notes", description: "从提交历史生成可发布的变更说明", tracked: true, source: "~/.chu/skills/release-notes", managed: true, enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "copy" } },
-    { id: "existing-skill", name: "frontend-audit", description: "在 Claude Code 中发现，尚未纳入 Chu", tracked: false, source: "~/.claude/skills/frontend-audit", managed: false, enabledOn: { claude: true }, modeByHost: { claude: "external" } },
+    { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", tracked: true, repository: "https://github.com/example/skills", source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
+    { id: "release-notes", name: "release-notes", description: "从提交历史生成可发布的变更说明", tracked: true, repository: "https://github.com/example/skills", source: "~/.chu/skills/release-notes", managed: true, enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "copy" } },
+    { id: "existing-skill", name: "frontend-audit", description: "在 Claude Code 中发现，尚未纳入 Chu", tracked: false, repository: "", source: "~/.claude/skills/frontend-audit", managed: false, enabledOn: { claude: true }, modeByHost: { claude: "external" } },
   ],
   mcps: [
     { id: "filesystem", name: "filesystem", description: "受控访问本地项目文件", type: "stdio", endpoint: "", command: "npx", hasCredentials: false, managed: true, enabledOn: { opencode: true, claude: true, codex: false } },
@@ -165,7 +167,7 @@ export async function installSkills(repository: string, paths: string[]) {
   if (backend) return backend.InstallSkills(repository, paths)
   const added = paths.map((path) => {
     const name = path.split("/").at(-1) || "new-skill"
-    return { id: name, name, description: "新安装的 Git skill", tracked: true, source: `~/.chu/skills/${name}`, managed: true, enabledOn: {}, modeByHost: {} }
+    return { id: name, name, description: "新安装的 Git skill", tracked: true, repository, source: `~/.chu/skills/${name}`, managed: true, enabledOn: {}, modeByHost: {} }
   })
   demoSnapshot = { ...demoSnapshot, skills: [...demoSnapshot.skills, ...added] }
   return demoSnapshot
@@ -179,6 +181,13 @@ export async function checkSkillUpdates(): Promise<SkillUpdate[]> {
 export async function updateSkill(skillID: string) {
   const backend = api()
   return backend ? backend.UpdateSkill(skillID) : demoSnapshot
+}
+
+export async function deleteSkill(skillID: string) {
+  const backend = api()
+  if (backend) return backend.DeleteSkill(skillID)
+  demoSnapshot = { ...demoSnapshot, skills: demoSnapshot.skills.filter((item) => item.id !== skillID || !item.managed) }
+  return demoSnapshot
 }
 
 export async function removeSkill(skillID: string) {

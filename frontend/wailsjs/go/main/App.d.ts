@@ -8,6 +8,8 @@ export function AddMCP(arg1:main.MCPInput):Promise<main.Snapshot>;
 
 export function CheckSkillUpdates():Promise<Array<main.SkillUpdate>>;
 
+export function DeleteSkill(arg1:string):Promise<main.Snapshot>;
+
 export function GetSnapshot():Promise<main.Snapshot>;
 
 export function ImportSkill(arg1:string,arg2:string):Promise<main.Snapshot>;

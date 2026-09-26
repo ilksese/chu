@@ -2,7 +2,7 @@ import { useDeferredValue, useRef, useState } from "react";
 import { Plus, RefreshCw, Search } from "lucide-react";
 import { AddResourceDialog } from "@/components/add-resource-dialog";
 import { ResourceList } from "@/components/resource-browser";
-import type { MCP, SkillUpdate } from "@/lib/api";
+import type { MCP, Skill, SkillUpdate } from "@/lib/api";
 import { resourcesFor, type ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
 
@@ -20,10 +20,12 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const testMCP = useAppStore((state) => state.testMCP);
   const checkSkillUpdates = useAppStore((state) => state.checkSkillUpdates);
   const updateSkill = useAppStore((state) => state.updateSkill);
+  const deleteSkill = useAppStore((state) => state.deleteSkill);
   const removeSkill = useAppStore((state) => state.removeSkill);
   const [search, setSearch] = useState("");
   const [updates, setUpdates] = useState<SkillUpdate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [repository, setRepository] = useState("");
   const dialogTrigger = useRef<HTMLButtonElement>(null);
   const deferredSearch = useDeferredValue(search);
   const resources = resourcesFor(snapshot, kind);
@@ -60,7 +62,10 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
           ref={dialogTrigger}
           type="button"
           className="button button-primary"
-          onClick={() => setDialogOpen(true)}
+          onClick={() => {
+            setRepository("");
+            setDialogOpen(true);
+          }}
         >
           <Plus />
           {copy.action}
@@ -93,12 +98,21 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
             updates={kind === "skills" ? updates : []}
             onUpdate={(id) => void updateSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
             onRemove={(id) => void removeSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
+            onDelete={(id) => {
+              if (!snapshot.skills.find((skill) => skill.id === id)?.managed) return;
+              void deleteSkill(id);
+            }}
+            onMore={(item: Skill) => {
+              setRepository(item.repository);
+              setDialogOpen(true);
+            }}
           />
         </div>
       </section>
       {dialogOpen ? (
         <AddResourceDialog
           kind={kind}
+          initialRepository={repository}
           onClose={() => setDialogOpen(false)}
           returnFocus={dialogTrigger.current}
         />

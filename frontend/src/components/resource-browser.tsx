@@ -1,7 +1,49 @@
-import { Bot, Download, KeyRound, Network, RefreshCw, Sparkles, Trash2, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bot, Download, KeyRound, Network, Plus, RefreshCw, Sparkles, Trash2, Zap } from "lucide-react";
 import { Switch } from "@/components/host-controls";
 import type { Host, MCP, Skill, SkillUpdate } from "@/lib/api";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
+
+function DeleteConfirm({
+  name,
+  anchor,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  anchor: string;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.showPopover();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className="delete-popover"
+      popover="auto"
+      style={{ positionAnchor: anchor } as React.CSSProperties}
+      onToggle={(event) => {
+        if (event.newState === "closed") onCancel();
+      }}
+    >
+      <strong>删除 {name}？</strong>
+      <p>宿主上的部署和中央副本都会移除。</p>
+      <span>
+        <button type="button" className="button button-secondary" onClick={onCancel}>
+          取消
+        </button>
+        <button type="button" className="button remove-button" disabled={busy} onClick={onConfirm}>
+          删除
+        </button>
+      </span>
+    </div>
+  );
+}
 
 function ResourceIcon({ kind }: { kind: ResourceKind }) {
   if (kind === "skills") return <Sparkles />;
@@ -20,6 +62,8 @@ export function ResourceList({
   updates = [],
   onUpdate,
   onRemove,
+  onMore,
+  onDelete,
 }: {
   kind: ResourceKind;
   items: Resource[];
@@ -31,7 +75,11 @@ export function ResourceList({
   updates?: SkillUpdate[];
   onUpdate?: (id: string) => void;
   onRemove?: (id: string) => void;
+  onMore?: (item: Skill) => void;
+  onDelete?: (id: string) => void;
 }) {
+  const [pendingDelete, setPendingDelete] = useState<string>();
+  const visibleHosts = hosts.filter((host) => host.installed);
   if (items.length === 0) {
     return (
       <div className="empty-state">
@@ -49,10 +97,8 @@ export function ResourceList({
       <div className="resource-table-head">
         <span>资源</span>
         <div className="host-columns" aria-label="Agent 宿主">
-          {hosts.map((host) => (
-            <span key={host.id} title={host.name}>
-              {host.id === "opencode" ? "OC" : host.id === "claude" ? "CC" : "CX"}
-            </span>
+          {visibleHosts.map((host) => (
+            <span key={host.id}>{host.name}</span>
           ))}
         </div>
         <span />
@@ -98,7 +144,7 @@ export function ResourceList({
             </button>
           ) : (
             <span className="host-columns host-switches">
-              {hosts.map((host) => {
+              {visibleHosts.map((host) => {
                 const operation = `${kind}:${item.id}:${host.id}`;
                 return (
                   <Switch
@@ -112,6 +158,41 @@ export function ResourceList({
               })}
             </span>
           )}
+          {kind === "skills" && item.managed ? (
+            <span className="row-actions">
+              {(item as Skill).repository ? (
+                <button
+                  type="button"
+                  className="row-action"
+                  aria-label={`安装 ${item.name} 同仓库的其他 Skill`}
+                  title="安装同仓库的其他 Skill"
+                  onClick={() => onMore?.(item as Skill)}
+                >
+                  <Plus />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="row-action row-action-danger"
+                style={{ anchorName: `--delete-${item.id}` } as React.CSSProperties}
+                aria-label={`删除 ${item.name}`}
+                title="删除 Skill"
+                disabled={busy === `delete:${item.id}`}
+                onClick={() => setPendingDelete(item.id)}
+              >
+                <Trash2 />
+              </button>
+              {pendingDelete === item.id ? (
+                <DeleteConfirm
+                  name={item.name}
+                  anchor={`--delete-${item.id}`}
+                  busy={busy === `delete:${item.id}`}
+                  onCancel={() => setPendingDelete(undefined)}
+                  onConfirm={() => onDelete?.(item.id)}
+                />
+              ) : null}
+            </span>
+          ) : null}
           {kind === "mcps" && item.managed ? (
             <button
               type="button"

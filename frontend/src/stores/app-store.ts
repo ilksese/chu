@@ -8,6 +8,7 @@ import {
   installSkills,
   previewSkills,
   refreshSnapshot,
+  deleteSkill,
   removeSkill,
   updateSkill,
   restoreBackup,
@@ -57,12 +58,15 @@ type AppStore = {
   installSkills: (repository: string, paths: string[]) => Promise<boolean>;
   checkSkillUpdates: () => Promise<SkillUpdate[]>;
   updateSkill: (skillID: string) => Promise<boolean>;
+  deleteSkill: (skillID: string) => Promise<boolean>;
   removeSkill: (skillID: string) => Promise<boolean>;
   addMCP: (input: MCPInput) => Promise<boolean>;
   addAgent: (input: AgentInput) => Promise<boolean>;
   restoreHost: (host: Host) => Promise<boolean>;
   updateHost: (host: Host, paths: HostPaths) => Promise<boolean>;
 };
+
+let previewSerial = 0;
 
 export const useAppStore = create<AppStore>((set) => {
   async function run(operation: string, action: () => Promise<Snapshot>, success: string) {
@@ -132,14 +136,17 @@ export const useAppStore = create<AppStore>((set) => {
     },
 
     previewSkills: async (repository) => {
+      const serial = ++previewSerial;
       set({ busy: "preview:skills", notice: undefined });
       try {
-        return await previewSkills(repository);
+        const found = await previewSkills(repository);
+        if (serial === previewSerial) set({ busy: "" });
+        return found;
       } catch (error) {
-        set({ notice: { message: String(error), error: true } });
+        if (serial === previewSerial) {
+          set({ busy: "", notice: { message: String(error), error: true } });
+        }
         return [];
-      } finally {
-        set({ busy: "" });
       }
     },
     installSkills: (repository, paths) =>
@@ -158,6 +165,7 @@ export const useAppStore = create<AppStore>((set) => {
       }
     },
     updateSkill: (skillID) => run(`update:${skillID}`, () => updateSkill(skillID), "Skill 已更新"),
+    deleteSkill: (skillID) => run(`delete:${skillID}`, () => deleteSkill(skillID), "Skill 已删除"),
     removeSkill: (skillID) => run(`remove:${skillID}`, () => removeSkill(skillID), "Skill 已移除"),
     addMCP: (input) => run("add:mcps", () => addMCPAPI(input), "资源已保存到 Chu"),
     addAgent: (input) => run("add:agents", () => addAgentAPI(input), "资源已保存到 Chu"),
