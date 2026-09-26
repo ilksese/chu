@@ -164,8 +164,7 @@ export namespace main {
 	    id: string;
 	    name: string;
 	    description: string;
-	    repository: string;
-	    version: string;
+	    tracked: boolean;
 	    source: string;
 	    managed: boolean;
 	    enabledOn: Record<string, boolean>;
@@ -180,8 +179,7 @@ export namespace main {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.description = source["description"];
-	        this.repository = source["repository"];
-	        this.version = source["version"];
+	        this.tracked = source["tracked"];
 	        this.source = source["source"];
 	        this.managed = source["managed"];
 	        this.enabledOn = source["enabledOn"];

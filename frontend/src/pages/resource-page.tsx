@@ -28,9 +28,18 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const deferredSearch = useDeferredValue(search);
   const resources = resourcesFor(snapshot, kind);
   const query = deferredSearch.trim().toLowerCase();
-  const filtered = query
+  const filtered = (query
     ? resources.filter((item) => `${item.name} ${item.description}`.toLowerCase().includes(query))
-    : resources;
+    : resources
+  ).toSorted((left, right) => {
+    if (kind !== "skills") return left.name.localeCompare(right.name);
+    const rank = (item: (typeof resources)[number]) => {
+      const status = updates.find((update) => update.id === item.id)?.status;
+      if (status === "update") return 0;
+      return item.managed ? 1 : 2;
+    };
+    return rank(left) - rank(right) || left.name.localeCompare(right.name);
+  });
   const copy = pageCopy[kind];
 
   return (
@@ -41,7 +50,7 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
             type="button"
             className="button"
             disabled={busy === "updates:skills"}
-            onClick={() => void checkSkillUpdates().then(setUpdates)}
+            onClick={() => void checkSkillUpdates().then((found) => setUpdates(found ?? []))}
           >
             <RefreshCw className={busy === "updates:skills" ? "spin" : ""} />
             检查更新

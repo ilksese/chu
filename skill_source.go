@@ -129,7 +129,19 @@ func (a *App) CheckSkillUpdates() ([]SkillUpdate, error) {
 		}
 		for _, name := range names {
 			item := lock.Skills[name]
-			status := skillUpdateStatus(cacheDir, name, item, byPath, byName[name])
+			installedName := name
+			for _, stored := range a.state.Skills {
+				if stored.Name == name {
+					if front, _, ok := readSkillFrontmatter(stored.SourceDir); ok {
+						installedName = front
+					}
+				}
+			}
+			matchName := name
+			if byName[name] == nil && byName[installedName] != nil {
+				matchName = installedName
+			}
+			status := skillUpdateStatus(cacheDir, matchName, item, byPath, byName[matchName])
 			if status == "" {
 				continue
 			}
@@ -157,7 +169,7 @@ func (a *App) UpdateSkill(skillID string) (Snapshot, error) {
 	if err != nil {
 		return a.snapshotLocked(), err
 	}
-	item, ok := lock.Skills[stored.Name]
+	itemKey, item, ok := skillLockItemFor(lock, stored.Name, stored.ID)
 	if !ok {
 		return a.snapshotLocked(), errors.New("该 skill 没有来源记录，需要重新安装后才能更新")
 	}
@@ -165,11 +177,23 @@ func (a *App) UpdateSkill(skillID string) (Snapshot, error) {
 	if err != nil {
 		return a.snapshotLocked(), err
 	}
-	source := filepath.Join(cacheDir, filepath.FromSlash(item.SkillPath))
+	found := discoverSkillCandidates(cacheDir)
+	relative := resolveSkillPath(item, stored.Name, stored.SourceDir, found)
+	if relative == "" {
+		return a.snapshotLocked(), errors.New("来源仓库里找不到这个 skill")
+	}
+	source := filepath.Join(cacheDir, filepath.FromSlash(relative))
 	if err := replaceDir(source, stored.SourceDir); err != nil {
 		return a.snapshotLocked(), err
 	}
-	stored.Description = readSkillDescription(stored.SourceDir)
+	if name, description, ok := readSkillFrontmatter(stored.SourceDir); ok {
+		stored.Name = name
+		stored.Description = description
+	} else {
+		stored.Description = readSkillDescription(stored.SourceDir)
+	}
+	delete(lock.Skills, itemKey)
+	item.SkillPath = relative
 	item.ContentHash = hashPath(stored.SourceDir)
 	item.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	lock.Skills[stored.Name] = item
@@ -515,11 +539,7 @@ var skillSearchDirs = []string{
 
 func discoverSkillCandidates(root string) []SkillCandidate {
 	if name, description, ok := readSkillFrontmatter(root); ok && !skillInternal(root) {
-		relative, _ := filepath.Rel(filepath.Dir(root), root)
-		if relative == "" {
-			relative = "."
-		}
-		return []SkillCandidate{{Name: name, Description: description, Path: filepath.ToSlash(relative)}}
+		return []SkillCandidate{{Name: name, Description: description, Path: "."}}
 	}
 	var found []SkillCandidate
 	seen := map[string]bool{}
@@ -614,6 +634,47 @@ func scanSkillDir(root, dir string, depth int, seen map[string]bool, found *[]Sk
 	}
 }
 
+func skillLockItemFor(lock *skillLockFile, name, id string) (string, skillLockItem, bool) {
+	if item, ok := lock.Skills[name]; ok {
+		return name, item, true
+	}
+	if item, ok := lock.Skills[id]; ok {
+		return id, item, true
+	}
+	return "", skillLockItem{}, false
+}
+
+func resolveSkillPath(item skillLockItem, name, installed string, found []SkillCandidate) string {
+	byPath := map[string]SkillCandidate{}
+	byName := map[string][]SkillCandidate{}
+	for _, candidate := range found {
+		byPath[candidate.Path] = candidate
+		byName[candidate.Name] = append(byName[candidate.Name], candidate)
+	}
+	if candidate, ok := byPath[item.SkillPath]; ok && (candidate.Name == name || item.SkillPath != ".") {
+		return candidate.Path
+	}
+	if front, _, ok := readSkillFrontmatter(installed); ok {
+		if matches := byName[front]; len(matches) == 1 {
+			return matches[0].Path
+		}
+	}
+	if matches := byName[name]; len(matches) == 1 {
+		return matches[0].Path
+	}
+	slugName := slug(name)
+	var slugMatches []SkillCandidate
+	for _, candidate := range found {
+		if slug(candidate.Name) == slugName || slug(candidate.Path) == slugName || slug(filepath.Base(candidate.Path)) == slugName {
+			slugMatches = append(slugMatches, candidate)
+		}
+	}
+	if len(slugMatches) == 1 {
+		return slugMatches[0].Path
+	}
+	return ""
+}
+
 func skillUpdateStatus(root, name string, item skillLockItem, byPath map[string]SkillCandidate, sameName []SkillCandidate) string {
 	if candidate, ok := byPath[item.SkillPath]; ok && candidate.Name == name {
 		if hashPath(filepath.Join(root, filepath.FromSlash(item.SkillPath))) != item.ContentHash {
@@ -621,7 +682,7 @@ func skillUpdateStatus(root, name string, item skillLockItem, byPath map[string]
 		}
 		return ""
 	}
-	if len(sameName) == 1 {
+	if len(sameName) >= 1 {
 		return "update"
 	}
 	if len(sameName) > 1 {
@@ -653,12 +714,25 @@ func readSkillFrontmatter(path string) (string, string, bool) {
 		return "", "", false
 	}
 	var name, description string
-	for _, line := range strings.Split(text[4:end], "\n") {
-		key, value, ok := strings.Cut(strings.TrimSpace(line), ":")
+	lines := strings.Split(text[4:end], "\n")
+	for i := 0; i < len(lines); i++ {
+		key, value, ok := strings.Cut(strings.TrimSpace(lines[i]), ":")
 		if !ok {
 			continue
 		}
 		value = strings.Trim(strings.TrimSpace(value), `"'`)
+		if value == "|" || value == ">" || value == "|-" || value == ">-" {
+			var block []string
+			for i+1 < len(lines) && (strings.HasPrefix(lines[i+1], " ") || strings.HasPrefix(lines[i+1], "\t")) {
+				i++
+				block = append(block, strings.TrimSpace(lines[i]))
+			}
+			if value[0] == '>' {
+				value = strings.Join(block, " ")
+			} else {
+				value = strings.Join(block, "\n")
+			}
+		}
 		switch strings.ToLower(strings.TrimSpace(key)) {
 		case "name":
 			name = value

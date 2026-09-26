@@ -1,4 +1,4 @@
-import { Bot, Download, KeyRound, Network, Sparkles, Zap } from "lucide-react";
+import { Bot, Download, KeyRound, Network, RefreshCw, Sparkles, Trash2, Zap } from "lucide-react";
 import { Switch } from "@/components/host-controls";
 import type { Host, MCP, Skill, SkillUpdate } from "@/lib/api";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
@@ -55,12 +55,16 @@ export function ResourceList({
             </span>
           ))}
         </div>
+        <span />
       </div>
-      {items.map((item) => (
+      {items.map((item) => {
+        const update = updates.find((entry) => entry.id === item.id);
+        return (
         <div
           key={item.id}
           className="resource-row"
         >
+          {update?.status === "update" ? <span className="update-ribbon">new</span> : null}
           <span className={`resource-icon resource-icon-${kind}`}>
             <ResourceIcon kind={kind} />
           </span>
@@ -86,16 +90,6 @@ export function ResourceList({
             </span>
             <span className="resource-description">{item.description || "未填写描述"}</span>
             <span className="resource-meta">{resourceMeta(item, kind)}</span>
-            {updates.find((update) => update.id === item.id)?.status === "update" ? (
-              <button type="button" className="text-button" onClick={() => onUpdate?.(item.id)}>
-                更新
-              </button>
-            ) : null}
-            {updates.find((update) => update.id === item.id)?.status === "deleted" ? (
-              <button type="button" className="text-button" onClick={() => onRemove?.(item.id)}>
-                确认移除
-              </button>
-            ) : null}
           </span>
           {!item.managed && kind === "skills" ? (
             <button type="button" className="import-button" onClick={() => onImport(item)}>
@@ -129,8 +123,21 @@ export function ResourceList({
               <Zap />
             </button>
           ) : null}
+          {update?.status === "update" ? (
+            <button type="button" className="import-button update-button" onClick={() => onUpdate?.(item.id)}>
+              <RefreshCw />
+              更新
+            </button>
+          ) : null}
+          {update?.status === "deleted" ? (
+            <button type="button" className="import-button remove-button" onClick={() => onRemove?.(item.id)}>
+              <Trash2 />
+              确认移除
+            </button>
+          ) : null}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

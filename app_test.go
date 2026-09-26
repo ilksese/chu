@@ -47,6 +47,13 @@ func TestDiscoverSkillCandidates(t *testing.T) {
 		t.Fatalf("candidates = %#v", found)
 	}
 
+	repoRoot := t.TempDir()
+	writeSkill(t, repoRoot, "taste-skill", "Design skill.")
+	found = discoverSkillCandidates(repoRoot)
+	if len(found) != 1 || found[0].Path != "." {
+		t.Fatalf("root candidates = %#v", found)
+	}
+
 	agentRoot := t.TempDir()
 	writeSkill(t, filepath.Join(agentRoot, ".agents", "skills", "impeccable"), "impeccable", "Design skill.")
 	writeSkill(t, filepath.Join(agentRoot, ".claude", "skills", "impeccable"), "impeccable", "Duplicate.")
@@ -71,6 +78,34 @@ func writeSkill(t *testing.T, dir, name, description string) {
 	}
 }
 
+func TestSkillUpdateStatus(t *testing.T) {
+	root := t.TempDir()
+	writeSkill(t, filepath.Join(root, ".agents", "skills", "impeccable"), "impeccable", "Updated.")
+	item := skillLockItem{SkillPath: ".agent/skills/impeccable", ContentHash: "old"}
+	same := []SkillCandidate{{Name: "impeccable", Path: ".agents/skills/impeccable"}}
+	if got := skillUpdateStatus(root, "impeccable", item, map[string]SkillCandidate{}, same); got != "update" {
+		t.Fatalf("relocated skill = %q", got)
+	}
+	renamed := []SkillCandidate{{Name: "design-taste-frontend", Path: "skills/taste-skill"}}
+	if got := skillUpdateStatus(root, "design-taste-frontend", skillLockItem{SkillPath: ".", ContentHash: "old"}, map[string]SkillCandidate{}, renamed); got != "update" {
+		t.Fatalf("renamed skill = %q", got)
+	}
+}
+
+func TestResolveSkillPath(t *testing.T) {
+	found := []SkillCandidate{{Name: "design-taste-frontend", Path: "skills/taste-skill"}}
+	got := resolveSkillPath(skillLockItem{SkillPath: "."}, "taste-skill", "", found)
+	if got != "skills/taste-skill" {
+		t.Fatalf("slug path = %q", got)
+	}
+	root := t.TempDir()
+	writeSkill(t, root, "design-taste-frontend", "Design skill.")
+	got = resolveSkillPath(skillLockItem{SkillPath: "."}, "taste-skill", root, found)
+	if got != "skills/taste-skill" {
+		t.Fatalf("resolved path = %q", got)
+	}
+}
+
 func TestReadSkillDescription(t *testing.T) {
 	directory := t.TempDir()
 	frontmatter := "---\nname: grill-me\ndescription: A relentless interview.\n---\n# Ignored\n"
@@ -79,6 +114,14 @@ func TestReadSkillDescription(t *testing.T) {
 	}
 	if got := readSkillDescription(directory); got != "A relentless interview." {
 		t.Fatalf("frontmatter description = %q", got)
+	}
+
+	folded := "---\nname: grill-me\ndescription: >\n  A relentless interview\n  to sharpen a plan.\n---\n"
+	if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte(folded), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := readSkillDescription(directory); got != "A relentless interview to sharpen a plan." {
+		t.Fatalf("folded description = %q", got)
 	}
 
 	heading := "# Code Review\n\nDetails\n"

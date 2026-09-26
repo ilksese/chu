@@ -147,7 +147,7 @@ export const useAppStore = create<AppStore>((set) => {
     checkSkillUpdates: async () => {
       set({ busy: "updates:skills", notice: undefined });
       try {
-        const updates = await checkSkillUpdates();
+        const updates = (await checkSkillUpdates()) ?? [];
         set({ notice: { message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill" } });
         return updates;
       } catch (error) {

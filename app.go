@@ -565,7 +565,11 @@ func (a *App) snapshotLocked() Snapshot {
 	for _, item := range a.state.Skills {
 		enabled, modes := deploymentViews(item.Deployments, specs)
 		_, tracked := lock.Skills[item.Name]
-		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: item.Description, Tracked: tracked, Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
+		description := item.Description
+		if description == "" {
+			description = readSkillDescription(item.SourceDir)
+		}
+		skills = append(skills, SkillView{ID: item.ID, Name: item.Name, Description: description, Tracked: tracked, Source: item.SourceDir, Managed: true, EnabledOn: enabled, ModeByHost: modes})
 	}
 	skills = append(skills, a.discoveredSkills(specs)...)
 	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
@@ -959,15 +963,8 @@ func readSkillDescription(path string) string {
 		return ""
 	}
 	text := strings.ReplaceAll(string(data), "\r\n", "\n")
-	if strings.HasPrefix(text, "---\n") {
-		if end := strings.Index(text, "\n---"); end > 4 {
-			for _, line := range strings.Split(text[4:end], "\n") {
-				key, value, ok := strings.Cut(strings.TrimSpace(line), ":")
-				if ok && strings.EqualFold(strings.TrimSpace(key), "description") {
-					return strings.Trim(strings.TrimSpace(value), `"'`)
-				}
-			}
-		}
+	if _, description, ok := readSkillFrontmatter(path); ok {
+		return description
 	}
 	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)

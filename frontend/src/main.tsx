@@ -43,6 +43,25 @@ const container = document.getElementById("root");
 
 const root = createRoot(container!);
 
+async function attachWails() {
+  if (window.go?.main?.App || !location.protocol.startsWith("wails")) return;
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/wails/runtime.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("wails runtime"));
+    document.head.append(script);
+  });
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/wails/ipc.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("wails ipc"));
+    document.head.append(script);
+  });
+}
+
+await attachWails().catch((error) => log("error", `attach wails ${String(error)}`));
 log("info", `boot href=${location.href} go=${Boolean(window.go?.main?.App)} debug=${import.meta.env.VITE_CHU_DEBUG_WS || "off"}`);
 startDebugBridge();
 
