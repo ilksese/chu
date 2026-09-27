@@ -6,7 +6,7 @@ export function HostIcon({ id }: { id: string }) {
 
 function OpenCodeIcon() {
   return (
-    <svg className="host-icon" viewBox="0 0 512 512" aria-hidden="true">
+    <svg className="size-full" viewBox="0 0 512 512" aria-hidden="true">
       <rect width="512" height="512" fill="#131010" />
       <path d="M320 224V352H192V224H320Z" fill="#5A5858" />
       <path fillRule="evenodd" d="M384 416H128V96H384V416ZM320 160H192V352H320V160Z" fill="#fff" />
@@ -16,7 +16,7 @@ function OpenCodeIcon() {
 
 function ClaudeIcon() {
   return (
-    <svg className="host-icon" viewBox="0 0 39.6037 39.6037" aria-hidden="true">
+    <svg className="size-full" viewBox="0 0 39.6037 39.6037" aria-hidden="true">
       <rect width="39.6037" height="39.6037" rx="6" fill="#fff6f1" />
       <path
         transform="translate(4.8 4.8) scale(0.758)"
@@ -29,7 +29,7 @@ function ClaudeIcon() {
 
 function CodexIcon() {
   return (
-    <svg className="host-icon" viewBox="0 0 100 100" aria-hidden="true">
+    <svg className="size-full" viewBox="0 0 100 100" aria-hidden="true">
       <rect width="100" height="100" rx="16" fill="#fff" />
       <path
         transform="translate(8 8) scale(0.84)"

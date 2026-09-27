@@ -1,8 +1,10 @@
 import { useDeferredValue, useRef, useState } from "react";
 import { Plus, RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AddResourceDialog } from "@/components/add-resource-dialog";
 import { ResourceList } from "@/components/resource-browser";
-import type { MCP, Skill, SkillUpdate } from "@/lib/api";
+import type { MCP, Skill } from "@/lib/api";
 import { resourcesFor, type ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
 
@@ -18,12 +20,12 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const toggleResource = useAppStore((state) => state.toggleResource);
   const importSkill = useAppStore((state) => state.importSkill);
   const testMCP = useAppStore((state) => state.testMCP);
+  const updates = useAppStore((state) => state.skillUpdates);
   const checkSkillUpdates = useAppStore((state) => state.checkSkillUpdates);
   const updateSkill = useAppStore((state) => state.updateSkill);
   const deleteSkill = useAppStore((state) => state.deleteSkill);
   const removeSkill = useAppStore((state) => state.removeSkill);
   const [search, setSearch] = useState("");
-  const [updates, setUpdates] = useState<SkillUpdate[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [repository, setRepository] = useState("");
   const dialogTrigger = useRef<HTMLButtonElement>(null);
@@ -46,22 +48,22 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
 
   return (
     <>
-      <section className="page-heading">
+      <section className="mb-6 flex items-center justify-end gap-6">
         {kind === "skills" ? (
-          <button
+          <Button
             type="button"
-            className="button"
+            variant="secondary"
             disabled={busy === "updates:skills"}
-            onClick={() => void checkSkillUpdates().then((found) => setUpdates(found ?? []))}
+            onClick={() => void checkSkillUpdates()}
           >
-            <RefreshCw className={busy === "updates:skills" ? "spin" : ""} />
+            <RefreshCw className={busy === "updates:skills" ? "animate-spin" : ""} />
             检查更新
-          </button>
+          </Button>
         ) : null}
-        <button
+        <Button
           ref={dialogTrigger}
           type="button"
-          className="button button-primary"
+          variant="primary"
           onClick={() => {
             setRepository("");
             setDialogOpen(true);
@@ -69,22 +71,22 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
         >
           <Plus />
           {copy.action}
-        </button>
+        </Button>
       </section>
-      <div className="library-toolbar">
-        <label className="search-field">
+      <div className="flex min-h-14 items-center justify-between rounded-t-lg border-2 border-b-0 border-black bg-white px-3 py-2">
+        <label className="flex h-[38px] w-[min(380px,68%)] items-center gap-2 rounded-md border-2 border-black bg-[#f7f5ec] px-3 text-[#5c3613] focus-within:border-[#e92929] focus-within:shadow-[0_0_0_3px_rgb(233_41_41/15%)] [&_svg]:size-4">
           <Search />
-          <input
+          <Input size="bare"
             aria-label="搜索资源"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="搜索名称或描述"
           />
         </label>
-        <span>{filtered.length} 个条目</span>
+        <span className="pr-1.5 text-[11px] text-[#5c3613] tabular-nums">{filtered.length} 个条目</span>
       </div>
-      <section className="library-layout">
-        <div className="resource-panel resource-panel-full">
+      <section>
+        <div className="min-w-0 overflow-x-auto rounded-b-lg border-2 border-black bg-white">
           <ResourceList
             kind={kind}
             items={filtered}
@@ -96,8 +98,8 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
             onImport={(item) => void importSkill(item)}
             onTest={(item: MCP) => void testMCP(item.id)}
             updates={kind === "skills" ? updates : []}
-            onUpdate={(id) => void updateSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
-            onRemove={(id) => void removeSkill(id).then((ok) => ok && setUpdates((items) => items.filter((item) => item.id !== id)))}
+            onUpdate={(id) => void updateSkill(id)}
+            onRemove={(id) => void removeSkill(id)}
             onDelete={(id) => {
               if (!snapshot.skills.find((skill) => skill.id === id)?.managed) return;
               void deleteSkill(id);

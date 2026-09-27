@@ -1,49 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { tv } from "tailwind-variants";
 import { Bot, Download, KeyRound, Network, Plus, RefreshCw, Sparkles, Trash2, Zap } from "lucide-react";
 import { Switch } from "@/components/host-controls";
 import type { Host, MCP, Skill, SkillUpdate } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover } from "@/components/ui/popover";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
 
-function DeleteConfirm({
-  name,
-  anchor,
-  busy,
-  onCancel,
-  onConfirm,
-}: {
-  name: string;
-  anchor: string;
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.showPopover();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className="delete-popover"
-      popover="auto"
-      style={{ positionAnchor: anchor } as React.CSSProperties}
-      onToggle={(event) => {
-        if (event.newState === "closed") onCancel();
-      }}
-    >
-      <strong>删除 {name}？</strong>
-      <p>宿主上的部署和中央副本都会移除。</p>
-      <span>
-        <button type="button" className="button button-secondary" onClick={onCancel}>
-          取消
-        </button>
-        <button type="button" className="button remove-button" disabled={busy} onClick={onConfirm}>
-          删除
-        </button>
-      </span>
-    </div>
-  );
-}
+const resourceIcon = tv({
+  base: "grid size-9 shrink-0 place-items-center rounded-md border border-black [&_svg]:size-4",
+  variants: { kind: { skills: "bg-primary", mcps: "bg-[#e8f0fc] text-[#2469d8]", agents: "bg-[#f7f5ec] text-[#5c3613]" } },
+});
+const rowAction = tv({
+  base: "grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-[#5c3613] hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4",
+  variants: { danger: { true: "hover:bg-[#e92929] hover:text-white" } },
+});
 
 function ResourceIcon({ kind }: { kind: ResourceKind }) {
   if (kind === "skills") return <Sparkles />;
@@ -79,24 +51,25 @@ export function ResourceList({
   onDelete?: (id: string) => void;
 }) {
   const [pendingDelete, setPendingDelete] = useState<string>();
+  const deleteAnchor = useRef<HTMLButtonElement>(null);
   const visibleHosts = hosts.filter((host) => host.installed);
   if (items.length === 0) {
     return (
-      <div className="empty-state">
-        <span className="empty-icon">
+      <div className="grid min-h-[280px] place-items-center p-8 text-center text-[#5c3613]">
+        <span className="grid size-[42px] place-items-center rounded-md border border-black bg-primary [&_svg]:size-5">
           <ResourceIcon kind={kind} />
         </span>
-        <strong>还没有资源</strong>
-        <p>使用右上角的新建按钮添加第一个条目。</p>
+        <strong className="mt-2.5 text-sm text-black">还没有资源</strong>
+        <p className="mt-1 text-[11px]">使用右上角的新建按钮添加第一个条目。</p>
       </div>
     );
   }
 
   return (
-    <div className="resource-table">
-      <div className="resource-table-head">
-        <span>资源</span>
-        <div className="host-columns" aria-label="Agent 宿主">
+    <div className="min-w-[660px]">
+      <div className="grid min-h-[38px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-black bg-[#f7f5ec] px-3.5 text-[9px] font-bold text-[#5c3613] uppercase">
+        <span className="col-span-2">资源</span>
+        <div className="grid grid-flow-col justify-end gap-2 text-center auto-cols-[minmax(72px,max-content)]" aria-label="Agent 宿主">
           {visibleHosts.map((host) => (
             <span key={host.id}>{host.name}</span>
           ))}
@@ -108,42 +81,38 @@ export function ResourceList({
         return (
         <div
           key={item.id}
-          className="resource-row"
+          className="relative grid min-h-[84px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 overflow-hidden border-b border-[#5c3613] bg-white px-3.5 py-3 text-left last:border-b-0 hover:bg-[#fffbe8]"
         >
-          {update?.status === "update" ? <span className="update-ribbon">new</span> : null}
-          <span className={`resource-icon resource-icon-${kind}`}>
+          {update?.status === "update" ? <span className="pointer-events-none absolute top-3.5 -left-7 z-4 h-4 w-21 -rotate-45 border-y border-black bg-primary text-center text-[9px] leading-[13px] font-extrabold tracking-widest uppercase shadow-[0_1px_0_#000]">new</span> : null}
+          <span className={resourceIcon({ kind, className: "relative z-2" })}>
             <ResourceIcon kind={kind} />
           </span>
-          <span className="resource-copy">
-            <span className="resource-title-line">
-              <strong>{item.name}</strong>
+          <span className="relative z-2 grid min-w-0 gap-1">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <strong className="truncate text-[13px]">{item.name}</strong>
               {!item.managed ? (
                 <>
-                  <span className="badge badge-warning">待导入</span>
-                  <span className="badge badge-source">
-                    {hosts.find((host) => item.enabledOn[host.id])?.name || "未知宿主"}
-                  </span>
+                  <Badge tone="warning" size="sm">待导入</Badge>
+                  <Badge tone="info" size="sm">{hosts.find((host) => item.enabledOn[host.id])?.name || "未知宿主"}</Badge>
                 </>
               ) : null}
-              {kind === "skills" &&
-              item.managed &&
-              Object.values((item as Skill).modeByHost).includes("copy") ? (
-                <span className="badge">copy</span>
+              {kind === "skills" && item.managed && Object.values((item as Skill).modeByHost).includes("copy") ? (
+                <Badge tone="neutral" size="sm">copy</Badge>
               ) : null}
               {kind === "mcps" && (item as MCP).hasCredentials ? (
-                <KeyRound className="credential-icon" aria-label="包含敏感值" />
+                <KeyRound className="size-3 text-[#f29c1f]" aria-label="包含敏感值" />
               ) : null}
             </span>
-            <span className="resource-description">{item.description || "未填写描述"}</span>
-            <span className="resource-meta">{resourceMeta(item, kind)}</span>
+            <span className="truncate text-[11px] text-[#5c3613]">{item.description || "未填写描述"}</span>
+            <span className="truncate text-[9px] text-neutral-400">{resourceMeta(item, kind)}</span>
           </span>
           {!item.managed && kind === "skills" ? (
-            <button type="button" className="import-button" onClick={() => onImport(item)}>
+            <Button type="button" variant="primary" size="sm" className="relative z-3 justify-self-end" onClick={() => onImport(item)}>
               <Download />
               导入
-            </button>
+            </Button>
           ) : (
-            <span className="host-columns host-switches">
+            <span className="relative z-3 grid grid-flow-col items-center justify-end gap-2 auto-cols-[minmax(72px,max-content)]">
               {visibleHosts.map((host) => {
                 const operation = `${kind}:${item.id}:${host.id}`;
                 return (
@@ -159,11 +128,11 @@ export function ResourceList({
             </span>
           )}
           {kind === "skills" && item.managed ? (
-            <span className="row-actions">
+            <span className="relative z-3 flex justify-end gap-0.5">
               {(item as Skill).repository ? (
                 <button
                   type="button"
-                  className="row-action"
+                  className={rowAction()}
                   aria-label={`安装 ${item.name} 同仓库的其他 Skill`}
                   title="安装同仓库的其他 Skill"
                   onClick={() => onMore?.(item as Skill)}
@@ -172,9 +141,9 @@ export function ResourceList({
                 </button>
               ) : null}
               <button
+                ref={pendingDelete === item.id ? deleteAnchor : undefined}
                 type="button"
-                className="row-action row-action-danger"
-                style={{ anchorName: `--delete-${item.id}` } as React.CSSProperties}
+                className={rowAction({ danger: true })}
                 aria-label={`删除 ${item.name}`}
                 title="删除 Skill"
                 disabled={busy === `delete:${item.id}`}
@@ -182,21 +151,20 @@ export function ResourceList({
               >
                 <Trash2 />
               </button>
-              {pendingDelete === item.id ? (
-                <DeleteConfirm
-                  name={item.name}
-                  anchor={`--delete-${item.id}`}
-                  busy={busy === `delete:${item.id}`}
-                  onCancel={() => setPendingDelete(undefined)}
-                  onConfirm={() => onDelete?.(item.id)}
-                />
-              ) : null}
+              <Popover open={pendingDelete === item.id} anchor={deleteAnchor} onClose={() => setPendingDelete(undefined)}>
+                <strong className="block">删除 {item.name}？</strong>
+                <p className="my-1.5 block text-xs text-[#5c3613]">宿主上的部署和中央副本都会移除。</p>
+                <span className="flex justify-end gap-2">
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setPendingDelete(undefined)}>取消</Button>
+                  <Button type="button" variant="danger" size="sm" disabled={busy === `delete:${item.id}`} onClick={() => onDelete?.(item.id)}>删除</Button>
+                </span>
+              </Popover>
             </span>
           ) : null}
           {kind === "mcps" && item.managed ? (
             <button
               type="button"
-              className="row-action"
+              className={rowAction()}
               aria-label={`测试 ${item.name}`}
               title="测试配置"
               onClick={() => onTest(item as MCP)}
@@ -205,16 +173,16 @@ export function ResourceList({
             </button>
           ) : null}
           {update?.status === "update" ? (
-            <button type="button" className="import-button update-button" onClick={() => onUpdate?.(item.id)}>
+            <Button type="button" variant="info" size="sm" className="relative z-3 justify-self-end" onClick={() => onUpdate?.(item.id)}>
               <RefreshCw />
               更新
-            </button>
+            </Button>
           ) : null}
           {update?.status === "deleted" ? (
-            <button type="button" className="import-button remove-button" onClick={() => onRemove?.(item.id)}>
+            <Button type="button" variant="danger" size="sm" className="relative z-3 justify-self-end" onClick={() => onRemove?.(item.id)}>
               <Trash2 />
               确认移除
-            </button>
+            </Button>
           ) : null}
         </div>
         );

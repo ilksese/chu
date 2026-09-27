@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound, RotateCcw } from "lucide-react";
 import { HostMark, StatusDot } from "@/components/host-controls";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { Host } from "@/lib/api";
 import { useAppStore } from "@/stores/app-store";
 
@@ -30,32 +33,32 @@ export function SettingsPage() {
 
   return (
     <>
-      <section className="settings-layout">
-        <div className="settings-list">
+      <section className="grid grid-cols-[minmax(0,1fr)_310px] items-start gap-6">
+        <div className="grid gap-3.5">
           {snapshot.hosts.map((host) => {
             const paths = drafts[host.id] ?? pathsFromHost(host);
             return (
-              <article key={host.id} className="settings-host">
-                <header>
+              <article key={host.id} className="rounded-lg border-2 border-black bg-white p-[18px]">
+                <header className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 border-b border-[#5c3613] pb-4">
                   <HostMark host={host} />
                   <div>
-                    <h2>{host.name}</h2>
-                    <span>
+                    <h2 className="m-0 text-base font-extrabold">{host.name}</h2>
+                    <span className="mt-1 flex items-center gap-1.5 text-[10px] text-[#5c3613]">
                       <StatusDot ready={host.installed} />
                       {host.installed ? "已检测到安装" : "未检测到安装"}
                     </span>
                   </div>
-                  <span className="format-badge">{host.format.toUpperCase()}</span>
+                  <Badge>{host.format.toUpperCase()}</Badge>
                 </header>
-                <div className="path-fields">
+                <div className="grid gap-2.5 py-4">
                   {(["configPath", "skillPath", "agentPath"] as const).map((key) => (
-                    <label key={key}>
+                    <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3 text-[11px] font-semibold text-[#5c3613]">
                       {key === "configPath"
                         ? "配置文件"
                         : key === "skillPath"
                           ? "Skill 目录"
                           : "Agent 目录"}
-                      <input
+                      <Input
                         value={paths[key]}
                         onChange={(event) =>
                           setDrafts((current) => ({
@@ -67,35 +70,35 @@ export function SettingsPage() {
                     </label>
                   ))}
                 </div>
-                <footer>
-                  <button
+                <footer className="flex justify-end gap-2.5 pt-4">
+                  <Button
                     type="button"
-                    className="button button-secondary"
+                    variant="secondary"
                     disabled={busy === `restore:${host.id}`}
                     onClick={() => void restoreHost(host)}
                   >
                     <RotateCcw />
                     恢复上次备份
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="button button-primary"
+                    variant="primary"
                     disabled={busy === `paths:${host.id}`}
                     onClick={() => void updateHost(host, paths)}
                   >
                     <Check />
                     保存路径
-                  </button>
+                  </Button>
                 </footer>
               </article>
             );
           })}
         </div>
-        <aside className="settings-aside">
-          <h2>Chu 中央目录</h2>
-          <code>{snapshot.root}</code>
-          <p>Skill 本体、MCP 定义、自定义 Agent 和部署状态统一存放在这里。</p>
-          <div className="security-note">
+        <aside className="sticky top-22 rounded-lg border-2 border-black bg-white p-[18px] shadow-[2px_2px_0_#000]">
+          <h2 className="m-0 text-[19px] font-extrabold">Chu 中央目录</h2>
+          <code className="mt-4 block truncate rounded border border-black bg-[#f7f5ec] p-2.5 text-[10px]">{snapshot.root}</code>
+          <p className="text-xs leading-relaxed text-[#5c3613]">Skill 本体、MCP 定义、自定义 Agent 和部署状态统一存放在这里。</p>
+          <div className="mt-4 flex gap-2.5 rounded-md border border-black bg-[#fde8c8] p-3 text-[#5c3613] [&_svg]:size-4">
             <KeyRound />
             <span>
               <strong>本地凭据</strong>当前版本按明文写入配置文件，界面默认隐藏。

@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { tv } from "tailwind-variants";
 import { GitBranch, Plus, Search, X } from "lucide-react";
 import type { AgentInput, MCP, MCPInput, SkillCandidate } from "@/lib/api";
 import type { ResourceKind } from "@/lib/resources";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
+
+const field = "grid gap-1.5 text-[11px] font-bold text-[#5c3613] [&_input]:min-h-10 [&_input]:rounded-md [&_input]:border-2 [&_input]:border-black [&_input]:px-3 [&_input]:text-xs [&_input]:outline-none [&_input]:focus:border-[#e92929] [&_select]:min-h-10 [&_select]:rounded-md [&_select]:border-2 [&_select]:border-black [&_select]:px-3 [&_select]:text-xs [&_textarea]:min-h-[150px] [&_textarea]:rounded-md [&_textarea]:border-2 [&_textarea]:border-black [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-xs [&_textarea]:outline-none [&_textarea]:focus:border-[#e92929]";
+const skillOption = tv({
+  base: "grid grid-cols-[18px_minmax(0,1fr)] items-start gap-1.5 rounded-md border-2 border-black bg-[#f7f5ec] p-2 text-[11px] font-bold text-[#5c3613]",
+  variants: { picked: { true: "bg-primary" } },
+});
 
 export function AddResourceDialog({
   kind,
@@ -121,22 +129,22 @@ export function AddResourceDialog({
         ? "添加 MCP 服务"
         : "创建自定义 Agent";
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-100 grid place-items-center bg-black/58 p-6" role="presentation" onMouseDown={onClose}>
       <section
         ref={dialogRef}
-        className="dialog"
+        className="max-h-[calc(100vh-48px)] w-[min(560px,100%)] overflow-auto rounded-lg border-2 border-black bg-white shadow-[8px_8px_0_#000]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="dialog-header">
+        <header className="flex items-center justify-between border-b-2 border-black p-5">
           <div>
-            <h2 id="dialog-title">{title}</h2>
+            <h2 id="dialog-title" className="m-0 text-[21px] leading-tight font-extrabold">{title}</h2>
           </div>
           <button
             type="button"
-            className="icon-button"
+            className="inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-black bg-white shadow-[2px_2px_0_#000] [&_svg]:size-4"
             aria-label="关闭"
             title="关闭"
             onClick={onClose}
@@ -144,10 +152,10 @@ export function AddResourceDialog({
             <X />
           </button>
         </header>
-        <form className="dialog-form" onSubmit={submit}>
+        <form className="grid gap-4 p-5" onSubmit={submit}>
           {kind === "skills" ? (
             <>
-              <label>
+              <label className={field}>
                 仓库
                 <input
                   ref={repositoryRef}
@@ -165,10 +173,10 @@ export function AddResourceDialog({
                 />
               </label>
               {candidates ? (
-                <div className="skill-picker">
+                <div className="grid max-h-[280px] gap-2 overflow-auto">
                   {candidates.length === 0 ? <p>没有发现可安装的 skill。</p> : null}
                   {candidates.map((item) => (
-                    <label key={item.path} className={selected.includes(item.path) ? "skill-picked" : ""}>
+                    <label key={item.path} className={skillOption({ picked: selected.includes(item.path) })}>
                       <input
                         type="checkbox"
                         checked={selected.includes(item.path)}
@@ -189,7 +197,7 @@ export function AddResourceDialog({
                   ))}
                 </div>
               ) : null}
-              <p className="form-note">
+              <p className="m-0 flex items-center gap-2 rounded border border-dashed border-[#5c3613] bg-[#f7f5ec] p-2.5 text-[10px] text-[#5c3613] [&_svg]:size-4 [&_code]:text-[9px]">
                 <GitBranch />
                 默认不勾选。安装后写入 <code>~/.chu/chu-lock.json</code>。
               </p>
@@ -197,12 +205,12 @@ export function AddResourceDialog({
           ) : null}
           {kind === "mcps" ? (
             <>
-              <div className="form-grid">
-                <label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className={field}>
                   名称
                   <input name="name" required autoFocus placeholder="filesystem" />
                 </label>
-                <label>
+                <label className={field}>
                   连接类型
                   <select
                     name="type"
@@ -215,23 +223,23 @@ export function AddResourceDialog({
                   </select>
                 </label>
               </div>
-              <label>
+              <label className={field}>
                 描述
                 <input name="description" placeholder="这个 MCP 提供什么能力" />
               </label>
               {mcpType === "stdio" ? (
-                <div className="form-grid">
-                  <label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={field}>
                     可执行文件
                     <input name="command" required placeholder="npx" />
                   </label>
-                  <label>
+                  <label className={field}>
                     参数（空格分隔）
                     <input name="args" placeholder="-y @modelcontextprotocol/server-filesystem" />
                   </label>
                 </div>
               ) : (
-                <label>
+                <label className={field}>
                   服务 URL
                   <input
                     name="endpoint"
@@ -241,7 +249,7 @@ export function AddResourceDialog({
                   />
                 </label>
               )}
-              <label>
+              <label className={field}>
                 Token / API Key
                 <input
                   name="secret"
@@ -254,21 +262,21 @@ export function AddResourceDialog({
           ) : null}
           {kind === "agents" ? (
             <>
-              <div className="form-grid">
-                <label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className={field}>
                   名称
                   <input name="name" required autoFocus placeholder="researcher" />
                 </label>
-                <label>
+                <label className={field}>
                   模型
                   <input name="model" placeholder="inherit" />
                 </label>
               </div>
-              <label>
+              <label className={field}>
                 描述
                 <input name="description" placeholder="什么时候使用这个 Agent" />
               </label>
-              <label>
+              <label className={field}>
                 系统提示词
                 <textarea
                   name="prompt"
@@ -279,28 +287,28 @@ export function AddResourceDialog({
               </label>
             </>
           ) : null}
-          <footer className="dialog-footer">
-            <button type="button" className="button button-secondary" onClick={onClose}>
+          <footer className="-mx-5 -mb-5 flex justify-end gap-2.5 border-t-2 border-black bg-[#f7f5ec] px-5 py-3.5">
+            <Button type="button" variant="secondary" onClick={onClose}>
               取消
-            </button>
+            </Button>
             {kind === "skills" && !candidates ? (
-              <button
+              <Button
                 type="submit"
-                className="button button-primary"
+                variant="primary"
                 disabled={busy === "preview:skills" || repositoryValue() === ""}
               >
                 <Search />
                 {busy === "preview:skills" ? "正在查找…" : "查找 Skill"}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 type="submit"
-                className="button button-primary"
+                variant="primary"
                 disabled={busy === `add:${kind}` || (kind === "skills" && selected.length === 0)}
               >
                 <Plus />
                 {kind === "skills" ? `安装 ${selected.length || ""}`.trim() : "创建"}
-              </button>
+              </Button>
             )}
           </footer>
         </form>

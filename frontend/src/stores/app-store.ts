@@ -40,6 +40,7 @@ type HostPaths = Pick<Host, "configPath" | "skillPath" | "agentPath">;
 
 type AppStore = {
   snapshot: Snapshot;
+  skillUpdates: SkillUpdate[];
   busy: string;
   notice?: Notice;
   demo: boolean;
@@ -85,6 +86,7 @@ export const useAppStore = create<AppStore>((set) => {
 
   return {
     snapshot: emptySnapshot,
+    skillUpdates: [],
     busy: "",
     demo: false,
 
@@ -155,7 +157,7 @@ export const useAppStore = create<AppStore>((set) => {
       set({ busy: "updates:skills", notice: undefined });
       try {
         const updates = (await checkSkillUpdates()) ?? [];
-        set({ notice: { message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill" } });
+        set({ skillUpdates: updates, notice: { message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill" } });
         return updates;
       } catch (error) {
         set({ notice: { message: String(error), error: true } });
@@ -164,9 +166,17 @@ export const useAppStore = create<AppStore>((set) => {
         set({ busy: "" });
       }
     },
-    updateSkill: (skillID) => run(`update:${skillID}`, () => updateSkill(skillID), "Skill 已更新"),
+    updateSkill: async (skillID) => {
+      const ok = await run(`update:${skillID}`, () => updateSkill(skillID), "Skill 已更新");
+      if (ok) set((state) => ({ skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID) }));
+      return ok;
+    },
     deleteSkill: (skillID) => run(`delete:${skillID}`, () => deleteSkill(skillID), "Skill 已删除"),
-    removeSkill: (skillID) => run(`remove:${skillID}`, () => removeSkill(skillID), "Skill 已移除"),
+    removeSkill: async (skillID) => {
+      const ok = await run(`remove:${skillID}`, () => removeSkill(skillID), "Skill 已移除");
+      if (ok) set((state) => ({ skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID) }));
+      return ok;
+    },
     addMCP: (input) => run("add:mcps", () => addMCPAPI(input), "资源已保存到 Chu"),
     addAgent: (input) => run("add:agents", () => addAgentAPI(input), "资源已保存到 Chu"),
     restoreHost: (host) =>

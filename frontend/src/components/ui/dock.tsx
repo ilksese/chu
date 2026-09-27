@@ -1,5 +1,5 @@
 import React, { useRef, type PropsWithChildren } from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import { tv, type VariantProps } from "tailwind-variants"
 import {
   motion,
   type MotionProps,
@@ -10,11 +10,23 @@ import {
   useTransform,
 } from "motion/react"
 
-import { cn } from "@/lib/utils"
 
-const dockVariants = cva(
-  "flex items-center justify-center gap-2 border-2 border-black bg-white p-2 shadow-[3px_3px_0_#000]"
-)
+
+const dockVariants = tv({
+  base: "flex items-center justify-center gap-2 border-2 border-black bg-white p-2 shadow-[3px_3px_0_#000]",
+  variants: {
+    orientation: {
+      horizontal: "",
+      vertical: "flex-col",
+    },
+    direction: {
+      top: "items-start",
+      middle: "items-center",
+      bottom: "items-end",
+    },
+  },
+  defaultVariants: { orientation: "horizontal", direction: "middle" },
+})
 
 type DockOrientation = "horizontal" | "vertical"
 
@@ -53,13 +65,7 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
         onPointerMove={(event) => pointerPosition.set({ x: event.clientX, y: event.clientY })}
         onPointerLeave={() => pointerPosition.set({ x: Infinity, y: Infinity })}
         {...props}
-        className={cn(
-          dockVariants({ className }),
-          orientation === "vertical" && "flex-col",
-          direction === "top" && "items-start",
-          direction === "middle" && "items-center",
-          direction === "bottom" && "items-end"
-        )}
+        className={dockVariants({ orientation, direction, className })}
       >
         {React.Children.map(children, (child) =>
           React.isValidElement<DockIconProps>(child) && child.type === DockIcon
@@ -92,6 +98,7 @@ interface DockIconProps extends Omit<MotionProps & React.HTMLAttributes<HTMLDivE
 }
 
 const DockIcon = ({
+
   size = 42,
   magnification = 54,
   disableMagnification,
@@ -117,7 +124,7 @@ const DockIcon = ({
     <motion.div
       ref={ref}
       style={{ width: springSize, height: springSize }}
-      className={cn("flex aspect-square shrink-0 items-center justify-center", className)}
+      className={["flex aspect-square shrink-0 items-center justify-center", className].filter(Boolean).join(" ")}
       {...props}
     >
       {children}

@@ -33,7 +33,7 @@ function App() {
 
   return (
     <AppShell>
-      <div className="page" key={location.pathname}>
+      <div className="mx-auto w-[min(1280px,calc(100%-64px))] py-8 pb-14" key={location.pathname}>
         <Routes location={location}>
           <Route path={viewPaths.overview} element={<OverviewPage />} />
           <Route path={viewPaths.skills} element={<ResourcePage kind="skills" />} />
