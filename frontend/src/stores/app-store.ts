@@ -11,8 +11,12 @@ import {
   deleteSkill,
   removeSkill,
   updateSkill,
+  createPrompt,
+  deletePrompt,
   restoreBackup,
   testMCP as testMCPAPI,
+  togglePrompt,
+  updatePrompt,
   toggleAgent,
   toggleMCP,
   toggleSkill,
@@ -20,6 +24,7 @@ import {
   type AgentInput,
   type Host,
   type MCPInput,
+  type Prompt,
   type SkillCandidate,
   type SkillUpdate,
   type Snapshot,
@@ -32,6 +37,7 @@ const emptySnapshot: Snapshot = {
   skills: [],
   mcps: [],
   agents: [],
+  prompts: [],
   lastScan: "",
 };
 
@@ -65,6 +71,10 @@ type AppStore = {
   addAgent: (input: AgentInput) => Promise<boolean>;
   restoreHost: (host: Host) => Promise<boolean>;
   updateHost: (host: Host, paths: HostPaths) => Promise<boolean>;
+  createPrompt: (name: string, content: string) => Promise<boolean>;
+  updatePrompt: (item: Prompt, name: string, content: string) => Promise<boolean>;
+  deletePrompt: (id: string) => Promise<boolean>;
+  togglePrompt: (id: string, hostID: string, enabled: boolean) => Promise<boolean>;
 };
 
 let previewSerial = 0;
@@ -181,6 +191,11 @@ export const useAppStore = create<AppStore>((set) => {
     addAgent: (input) => run("add:agents", () => addAgentAPI(input), "资源已保存到 Chu"),
     restoreHost: (host) =>
       run(`restore:${host.id}`, () => restoreBackup(host.id), `${host.name} 已恢复上次备份`),
+    createPrompt: (name, content) => run("add:prompts", () => createPrompt(name, content), "提示词已保存"),
+    updatePrompt: (item, name, content) => run(`update:${item.id}`, () => updatePrompt(item.id, name, content), "提示词已更新"),
+    deletePrompt: (id) => run(`delete:${id}`, () => deletePrompt(id), "提示词已删除"),
+    togglePrompt: (id, hostID, enabled) =>
+      run(`prompts:${id}:${hostID}`, () => togglePrompt(id, hostID, enabled), enabled ? "提示词已分发" : "已恢复宿主原文件"),
     updateHost: (host, paths) =>
       run(
         `paths:${host.id}`,

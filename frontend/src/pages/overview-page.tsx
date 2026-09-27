@@ -9,16 +9,19 @@ import {
   Link2,
   MoveHorizontal,
   Network,
+  ScrollText,
   Sparkles,
   TerminalSquare,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { viewPaths } from "@/app/navigation";
+import { viewPaths, type View } from "@/app/navigation";
 import { HostMark, StatusDot } from "@/components/host-controls";
 import { Button } from "@/components/ui/button";
 import type { ResourceKind } from "@/lib/resources";
 import { useAppStore } from "@/stores/app-store";
+
+type ShowcaseKind = ResourceKind | "prompts";
 
 const iconButton = "inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-black bg-white shadow-[2px_2px_0_#000] hover:-translate-x-px hover:-translate-y-px hover:bg-[#ffe62d] [&_svg]:size-4";
 const statIcon = tv({
@@ -27,7 +30,7 @@ const statIcon = tv({
 });
 
 type ShowcaseItem = {
-  id: ResourceKind;
+  id: ShowcaseKind;
   label: string;
   description: string;
   detail: string;
@@ -44,7 +47,7 @@ function FeatureCarousel({
   items: ShowcaseItem[];
   activeIndex: number;
   onActiveChange: (index: number) => void;
-  onOpen: (kind: ResourceKind) => void;
+  onOpen: (kind: ShowcaseKind) => void;
 }) {
   const dragStart = useRef<number | undefined>(undefined);
   const didDrag = useRef(false);
@@ -201,7 +204,7 @@ export function OverviewPage() {
   const navigate = useNavigate();
   const [carouselIndex, setCarouselIndex] = useState(0);
   const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
-  const activeDeployments = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents].reduce(
+  const activeDeployments = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents, ...(snapshot.prompts ?? [])].reduce(
     (total, item) => total + Object.values(item.enabledOn).filter(Boolean).length,
     0,
   );
@@ -233,9 +236,17 @@ export function OverviewPage() {
       count: snapshot.agents.length,
       icon: Bot,
     },
+    {
+      id: "prompts",
+      label: "提示词",
+      description: "维护全局提示词，并替换到各个宿主。",
+      detail: "份提示词",
+      count: snapshot.prompts?.length ?? 0,
+      icon: ScrollText,
+    },
   ];
 
-  function openView(kind: ResourceKind | "settings") {
+  function openView(kind: View) {
     startTransition(() => navigate(viewPaths[kind]));
   }
 

@@ -126,6 +126,28 @@ export namespace main {
 	        this.enabledOn = source["enabledOn"];
 	    }
 	}
+	export class PromptView {
+	    id: string;
+	    name: string;
+	    source: string;
+	    preview: string;
+	    enabledOn: Record<string, boolean>;
+	    modeByHost: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new PromptView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.source = source["source"];
+	        this.preview = source["preview"];
+	        this.enabledOn = source["enabledOn"];
+	        this.modeByHost = source["modeByHost"];
+	    }
+	}
 	export class SkillCandidate {
 	    name: string;
 	    description: string;
@@ -194,6 +216,7 @@ export namespace main {
 	    skills: SkillView[];
 	    mcps: MCPView[];
 	    agents: AgentView[];
+	    prompts: PromptView[];
 	    lastScan: string;
 	
 	    static createFrom(source: any = {}) {
@@ -207,6 +230,7 @@ export namespace main {
 	        this.skills = this.convertValues(source["skills"], SkillView);
 	        this.mcps = this.convertValues(source["mcps"], MCPView);
 	        this.agents = this.convertValues(source["agents"], AgentView);
+	        this.prompts = this.convertValues(source["prompts"], PromptView);
 	        this.lastScan = source["lastScan"];
 	    }
 	

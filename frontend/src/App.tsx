@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { viewPaths } from "@/app/navigation";
 import { AppShell } from "@/components/app-shell";
 import { OverviewPage } from "@/pages/overview-page";
+import { PromptsPage } from "@/pages/prompts-page";
 import { ResourcePage } from "@/pages/resource-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { useAppStore } from "@/stores/app-store";
@@ -39,6 +40,7 @@ function App() {
           <Route path={viewPaths.skills} element={<ResourcePage kind="skills" />} />
           <Route path={viewPaths.mcps} element={<ResourcePage kind="mcps" />} />
           <Route path={viewPaths.agents} element={<ResourcePage kind="agents" />} />
+          <Route path={viewPaths.prompts} element={<PromptsPage />} />
           <Route path={viewPaths.settings} element={<SettingsPage />} />
           <Route path="*" element={<Navigate to={viewPaths.overview} replace />} />
         </Routes>

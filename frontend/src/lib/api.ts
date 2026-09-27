@@ -57,12 +57,22 @@ export type Agent = {
   enabledOn: Record<string, boolean>
 }
 
+export type Prompt = {
+  id: string
+  name: string
+  source: string
+  preview: string
+  enabledOn: Record<string, boolean>
+  modeByHost: Record<string, string>
+}
+
 export type Snapshot = {
   root: string
   hosts: Host[]
   skills: Skill[]
   mcps: MCP[]
   agents: Agent[]
+  prompts: Prompt[]
   lastScan: string
 }
 
@@ -103,6 +113,11 @@ type AppAPI = {
   ToggleAgent: (agentID: string, hostID: string, enabled: boolean) => Promise<Snapshot>
   RestoreBackup: (hostID: string) => Promise<Snapshot>
   UpdateHostPaths: (hostID: string, configPath: string, skillPath: string, agentPath: string) => Promise<Snapshot>
+  CreatePrompt: (name: string, content: string) => Promise<Snapshot>
+  ReadPrompt: (id: string) => Promise<string>
+  UpdatePrompt: (id: string, name: string, content: string) => Promise<Snapshot>
+  DeletePrompt: (id: string) => Promise<Snapshot>
+  TogglePrompt: (id: string, hostID: string, enabled: boolean) => Promise<Snapshot>
 }
 
 declare global {
@@ -118,6 +133,9 @@ let demoSnapshot: Snapshot = {
     { id: "opencode", name: "OpenCode", description: "本地开发 Agent", installed: true, status: "ready", configPath: "~/.config/opencode/opencode.json", skillPath: "~/.config/opencode/skills", agentPath: "~/.config/opencode/agents", format: "json" },
     { id: "claude", name: "Claude Code", description: "Anthropic coding Agent", installed: true, status: "ready", configPath: "~/.claude/settings.json", skillPath: "~/.claude/skills", agentPath: "~/.claude/agents", format: "json" },
     { id: "codex", name: "Codex", description: "OpenAI coding Agent", installed: false, status: "not-found", configPath: "~/.codex/config.toml", skillPath: "~/.codex/skills", agentPath: "~/.codex/agents", format: "toml" },
+  ],
+  prompts: [
+    { id: "default", name: "default", source: "~/.chu/prompts/default.md", preview: "先读仓库约定，再改代码。", enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "link" } },
   ],
   skills: [
     { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", tracked: true, repository: "https://github.com/example/skills", source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
@@ -247,6 +265,44 @@ export async function toggleAgent(id: string, hostID: string, enabled: boolean) 
 export async function restoreBackup(hostID: string) {
   const backend = api()
   return backend ? backend.RestoreBackup(hostID) : demoSnapshot
+}
+
+export async function createPrompt(name: string, content: string) {
+  const backend = api()
+  if (backend) return backend.CreatePrompt(name, content)
+  const id = name.toLowerCase().replace(/\s+/g, "-")
+  demoSnapshot = { ...demoSnapshot, prompts: [...demoSnapshot.prompts, { id, name, source: `~/.chu/prompts/${name}.md`, preview: content.slice(0, 80), enabledOn: {}, modeByHost: {} }] }
+  return demoSnapshot
+}
+
+export async function readPrompt(id: string) {
+  const backend = api()
+  if (backend) return backend.ReadPrompt(id)
+  return demoSnapshot.prompts.find((item) => item.id === id)?.preview ?? ""
+}
+
+export async function updatePrompt(id: string, name: string, content: string) {
+  const backend = api()
+  if (backend) return backend.UpdatePrompt(id, name, content)
+  demoSnapshot = { ...demoSnapshot, prompts: demoSnapshot.prompts.map((item) => item.id === id ? { ...item, name, preview: content.slice(0, 80) } : item) }
+  return demoSnapshot
+}
+
+export async function deletePrompt(id: string) {
+  const backend = api()
+  if (backend) return backend.DeletePrompt(id)
+  demoSnapshot = { ...demoSnapshot, prompts: demoSnapshot.prompts.filter((item) => item.id !== id) }
+  return demoSnapshot
+}
+
+export async function togglePrompt(id: string, hostID: string, enabled: boolean) {
+  const backend = api()
+  if (backend) return backend.TogglePrompt(id, hostID, enabled)
+  demoSnapshot = { ...demoSnapshot, prompts: demoSnapshot.prompts.map((item) => {
+    if (!enabled) return item.id === id ? { ...item, enabledOn: { ...item.enabledOn, [hostID]: false } } : item
+    return { ...item, enabledOn: { ...item.enabledOn, [hostID]: item.id === id }, modeByHost: item.id === id ? { ...item.modeByHost, [hostID]: "link" } : item.modeByHost }
+  }) }
+  return demoSnapshot
 }
 
 export async function updateHostPaths(hostID: string, configPath: string, skillPath: string, agentPath: string) {

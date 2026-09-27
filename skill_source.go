@@ -16,8 +16,9 @@ import (
 )
 
 type skillLockFile struct {
-	Version int                      `json:"version"`
-	Skills  map[string]skillLockItem `json:"skills"`
+	Version int                       `json:"version"`
+	Skills  map[string]skillLockItem  `json:"skills"`
+	Prompts map[string]promptLockItem `json:"prompts,omitempty"`
 }
 
 type skillLockItem struct {
@@ -348,6 +349,9 @@ func (a *App) readSkillLock() (*skillLockFile, error) {
 	if lock.Skills == nil {
 		lock.Skills = map[string]skillLockItem{}
 	}
+	if lock.Prompts == nil {
+		lock.Prompts = map[string]promptLockItem{}
+	}
 	lock.Version = 1
 	return lock, nil
 }
@@ -356,6 +360,9 @@ func (a *App) writeSkillLock(lock *skillLockFile) error {
 	lock.Version = 1
 	if lock.Skills == nil {
 		lock.Skills = map[string]skillLockItem{}
+	}
+	if lock.Prompts == nil {
+		lock.Prompts = map[string]promptLockItem{}
 	}
 	data, err := json.MarshalIndent(lock, "", "  ")
 	if err != nil {

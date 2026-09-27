@@ -128,13 +128,23 @@ type AgentView struct {
 	EnabledOn   map[string]bool `json:"enabledOn"`
 }
 
+type PromptView struct {
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Source     string            `json:"source"`
+	Preview    string            `json:"preview"`
+	EnabledOn  map[string]bool   `json:"enabledOn"`
+	ModeByHost map[string]string `json:"modeByHost"`
+}
+
 type Snapshot struct {
-	Root     string      `json:"root"`
-	Hosts    []HostView  `json:"hosts"`
-	Skills   []SkillView `json:"skills"`
-	MCPs     []MCPView   `json:"mcps"`
-	Agents   []AgentView `json:"agents"`
-	LastScan string      `json:"lastScan"`
+	Root     string       `json:"root"`
+	Hosts    []HostView   `json:"hosts"`
+	Skills   []SkillView  `json:"skills"`
+	MCPs     []MCPView    `json:"mcps"`
+	Agents   []AgentView  `json:"agents"`
+	Prompts  []PromptView `json:"prompts"`
+	LastScan string       `json:"lastScan"`
 }
 
 type MCPInput struct {
@@ -182,6 +192,7 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) GetSnapshot() Snapshot {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	_, _ = a.reconcilePromptsLocked()
 	return a.snapshotLocked()
 }
 
@@ -586,7 +597,8 @@ func (a *App) snapshotLocked() Snapshot {
 		enabled, _ := deploymentViews(item.Deployments, specs)
 		agents = append(agents, AgentView{ID: item.ID, Name: item.Name, Description: item.Description, Model: item.Model, Source: item.Source, Managed: true, EnabledOn: enabled})
 	}
-	return Snapshot{Root: a.root, Hosts: hosts, Skills: skills, MCPs: mcps, Agents: agents, LastScan: time.Now().Format(time.RFC3339)}
+	prompts := a.promptViewsLocked(lock, specs)
+	return Snapshot{Root: a.root, Hosts: hosts, Skills: skills, MCPs: mcps, Agents: agents, Prompts: prompts, LastScan: time.Now().Format(time.RFC3339)}
 }
 
 func (a *App) hostView(spec hostSpec) HostView {

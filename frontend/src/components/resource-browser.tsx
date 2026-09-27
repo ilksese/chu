@@ -51,7 +51,7 @@ export function ResourceList({
   onDelete?: (id: string) => void;
 }) {
   const [pendingDelete, setPendingDelete] = useState<string>();
-  const deleteAnchor = useRef<HTMLButtonElement>(null);
+  const deleteAnchors = useRef(new Map<string, HTMLButtonElement>());
   const visibleHosts = hosts.filter((host) => host.installed);
   if (items.length === 0) {
     return (
@@ -141,7 +141,10 @@ export function ResourceList({
                 </button>
               ) : null}
               <button
-                ref={pendingDelete === item.id ? deleteAnchor : undefined}
+                ref={(node) => {
+                  if (node) deleteAnchors.current.set(item.id, node);
+                  else deleteAnchors.current.delete(item.id);
+                }}
                 type="button"
                 className={rowAction({ danger: true })}
                 aria-label={`删除 ${item.name}`}
@@ -151,7 +154,7 @@ export function ResourceList({
               >
                 <Trash2 />
               </button>
-              <Popover open={pendingDelete === item.id} anchor={deleteAnchor} onClose={() => setPendingDelete(undefined)}>
+              <Popover open={pendingDelete === item.id} anchor={{ current: pendingDelete ? deleteAnchors.current.get(pendingDelete) ?? null : null }} onClose={() => setPendingDelete(undefined)}>
                 <strong className="block">删除 {item.name}？</strong>
                 <p className="my-1.5 block text-xs text-[#5c3613]">宿主上的部署和中央副本都会移除。</p>
                 <span className="flex justify-end gap-2">

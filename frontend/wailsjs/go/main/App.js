@@ -14,6 +14,14 @@ export function CheckSkillUpdates() {
   return window['go']['main']['App']['CheckSkillUpdates']();
 }
 
+export function CreatePrompt(arg1, arg2) {
+  return window['go']['main']['App']['CreatePrompt'](arg1, arg2);
+}
+
+export function DeletePrompt(arg1) {
+  return window['go']['main']['App']['DeletePrompt'](arg1);
+}
+
 export function DeleteSkill(arg1) {
   return window['go']['main']['App']['DeleteSkill'](arg1);
 }
@@ -32,6 +40,10 @@ export function InstallSkills(arg1, arg2) {
 
 export function PreviewSkills(arg1) {
   return window['go']['main']['App']['PreviewSkills'](arg1);
+}
+
+export function ReadPrompt(arg1) {
+  return window['go']['main']['App']['ReadPrompt'](arg1);
 }
 
 export function Refresh() {
@@ -58,12 +70,20 @@ export function ToggleMCP(arg1, arg2, arg3) {
   return window['go']['main']['App']['ToggleMCP'](arg1, arg2, arg3);
 }
 
+export function TogglePrompt(arg1, arg2, arg3) {
+  return window['go']['main']['App']['TogglePrompt'](arg1, arg2, arg3);
+}
+
 export function ToggleSkill(arg1, arg2, arg3) {
   return window['go']['main']['App']['ToggleSkill'](arg1, arg2, arg3);
 }
 
 export function UpdateHostPaths(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['UpdateHostPaths'](arg1, arg2, arg3, arg4);
+}
+
+export function UpdatePrompt(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdatePrompt'](arg1, arg2, arg3);
 }
 
 export function UpdateSkill(arg1) {
