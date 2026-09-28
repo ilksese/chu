@@ -1,8 +1,8 @@
-import { useLayoutEffect, useId, useRef, type CSSProperties, type ReactNode, type Ref, type ToggleEvent } from "react"
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref, type ToggleEvent } from "react"
 import { tv } from "tailwind-variants"
 
 const popover = tv({
-  base: "popover-anchor fixed z-80 m-0 w-[min(240px,calc(100vw-24px))] rounded-lg border-2 border-black bg-white p-3 text-black shadow-[4px_4px_0_#000]",
+  base: "fixed inset-auto z-80 m-0 w-[min(240px,calc(100vw-24px))] rounded-lg border-2 border-black bg-white p-3 text-black shadow-[4px_4px_0_#000]",
 })
 
 function Popover({
@@ -19,20 +19,34 @@ function Popover({
   children: ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
-  const anchorName = `--popover-${useId().replace(/:/g, "")}`
+  const target = anchor && typeof anchor !== "function" ? anchor.current : null
 
   useLayoutEffect(() => {
-    const target = anchor && typeof anchor !== "function" ? anchor.current : null
     const pop = ref.current
     if (!open || !target || !pop) return
-    target.style.setProperty("anchor-name", anchorName)
-    pop.style.setProperty("position-anchor", anchorName)
     if (!pop.matches(":popover-open")) pop.showPopover()
+
+    const position = () => {
+      const anchorRect = target.getBoundingClientRect()
+      const popRect = pop.getBoundingClientRect()
+      const edge = 12
+      const gap = 8
+      const top = anchorRect.top - popRect.height - gap >= edge
+        ? anchorRect.top - popRect.height - gap
+        : anchorRect.bottom + gap
+      pop.style.left = `${Math.max(edge, Math.min(anchorRect.right - popRect.width, window.innerWidth - popRect.width - edge))}px`
+      pop.style.top = `${Math.max(edge, Math.min(top, window.innerHeight - popRect.height - edge))}px`
+    }
+
+    position()
+    window.addEventListener("resize", position)
+    window.addEventListener("scroll", position, true)
     return () => {
-      target.style.removeProperty("anchor-name")
+      window.removeEventListener("resize", position)
+      window.removeEventListener("scroll", position, true)
       if (pop.matches(":popover-open")) pop.hidePopover()
     }
-  }, [anchor, anchorName, open])
+  }, [open, target])
 
   return (
     <div

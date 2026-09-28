@@ -53,13 +53,6 @@
     outline-offset: 2px;
   }
   ::selection { color: var(--pk-black-outline); background: var(--pk-yellow-primary); }
-  .popover-anchor {
-    margin: 0;
-    inset: auto;
-    inset-area: top span-left;
-    position-area: top span-left;
-    position-try-fallbacks: flip-block, flip-inline;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
