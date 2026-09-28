@@ -18,8 +18,16 @@ export function CreatePrompt(arg1, arg2) {
   return window['go']['main']['App']['CreatePrompt'](arg1, arg2);
 }
 
+export function CreateReference(arg1, arg2) {
+  return window['go']['main']['App']['CreateReference'](arg1, arg2);
+}
+
 export function DeletePrompt(arg1) {
   return window['go']['main']['App']['DeletePrompt'](arg1);
+}
+
+export function DeleteReference(arg1) {
+  return window['go']['main']['App']['DeleteReference'](arg1);
 }
 
 export function DeleteSkill(arg1) {
@@ -44,6 +52,10 @@ export function PreviewSkills(arg1) {
 
 export function ReadPrompt(arg1) {
   return window['go']['main']['App']['ReadPrompt'](arg1);
+}
+
+export function ReadReference(arg1) {
+  return window['go']['main']['App']['ReadReference'](arg1);
 }
 
 export function Refresh() {
@@ -84,6 +96,10 @@ export function UpdateHostPaths(arg1, arg2, arg3, arg4) {
 
 export function UpdatePrompt(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdatePrompt'](arg1, arg2, arg3);
+}
+
+export function UpdateReference(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateReference'](arg1, arg2, arg3);
 }
 
 export function UpdateSkill(arg1) {

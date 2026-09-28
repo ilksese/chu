@@ -12,10 +12,13 @@ import {
   removeSkill,
   updateSkill,
   createPrompt,
+  createReference,
+  deleteReference,
   deletePrompt,
   restoreBackup,
   testMCP as testMCPAPI,
   togglePrompt,
+  updateReference,
   updatePrompt,
   toggleAgent,
   toggleMCP,
@@ -25,6 +28,7 @@ import {
   type Host,
   type MCPInput,
   type Prompt,
+  type Reference,
   type SkillCandidate,
   type SkillUpdate,
   type Snapshot,
@@ -38,6 +42,7 @@ const emptySnapshot: Snapshot = {
   mcps: [],
   agents: [],
   prompts: [],
+  references: [],
   lastScan: "",
 };
 
@@ -75,6 +80,9 @@ type AppStore = {
   updatePrompt: (item: Prompt, name: string, content: string) => Promise<boolean>;
   deletePrompt: (id: string) => Promise<boolean>;
   togglePrompt: (id: string, hostID: string, enabled: boolean) => Promise<boolean>;
+  createReference: (name: string, content: string) => Promise<boolean>;
+  updateReference: (item: Reference, name: string, content: string) => Promise<boolean>;
+  deleteReference: (id: string) => Promise<boolean>;
 };
 
 let previewSerial = 0;
@@ -196,6 +204,9 @@ export const useAppStore = create<AppStore>((set) => {
     deletePrompt: (id) => run(`delete:${id}`, () => deletePrompt(id), "提示词已删除"),
     togglePrompt: (id, hostID, enabled) =>
       run(`prompts:${id}:${hostID}`, () => togglePrompt(id, hostID, enabled), enabled ? "提示词已分发" : "已恢复宿主原文件"),
+    createReference: (name, content) => run("add:references", () => createReference(name, content), "Reference 已保存"),
+    updateReference: (item, name, content) => run(`update:reference:${item.id}`, () => updateReference(item.id, name, content), "Reference 已更新"),
+    deleteReference: (id) => run(`delete:reference:${id}`, () => deleteReference(id), "Reference 已删除"),
     updateHost: (host, paths) =>
       run(
         `paths:${host.id}`,

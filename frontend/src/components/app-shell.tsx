@@ -62,7 +62,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                         ? snapshot.agents.length
                         : item.id === "prompts"
                           ? snapshot.prompts.length
-                          : undefined;
+                          : item.id === "references"
+                            ? snapshot.references.length
+                            : undefined;
                 return (
                   <DockIcon key={item.id}>
                     <button

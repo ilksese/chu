@@ -148,6 +148,24 @@ export namespace main {
 	        this.modeByHost = source["modeByHost"];
 	    }
 	}
+	export class ReferenceView {
+	    id: string;
+	    name: string;
+	    source: string;
+	    preview: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReferenceView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.source = source["source"];
+	        this.preview = source["preview"];
+	    }
+	}
 	export class SkillCandidate {
 	    name: string;
 	    description: string;
@@ -217,6 +235,7 @@ export namespace main {
 	    mcps: MCPView[];
 	    agents: AgentView[];
 	    prompts: PromptView[];
+	    references: ReferenceView[];
 	    lastScan: string;
 	
 	    static createFrom(source: any = {}) {
@@ -231,6 +250,7 @@ export namespace main {
 	        this.mcps = this.convertValues(source["mcps"], MCPView);
 	        this.agents = this.convertValues(source["agents"], AgentView);
 	        this.prompts = this.convertValues(source["prompts"], PromptView);
+	        this.references = this.convertValues(source["references"], ReferenceView);
 	        this.lastScan = source["lastScan"];
 	    }
 	

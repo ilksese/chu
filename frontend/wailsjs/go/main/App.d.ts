@@ -10,7 +10,11 @@ export function CheckSkillUpdates():Promise<Array<main.SkillUpdate>>;
 
 export function CreatePrompt(arg1:string,arg2:string):Promise<main.Snapshot>;
 
+export function CreateReference(arg1:string,arg2:string):Promise<main.Snapshot>;
+
 export function DeletePrompt(arg1:string):Promise<main.Snapshot>;
+
+export function DeleteReference(arg1:string):Promise<main.Snapshot>;
 
 export function DeleteSkill(arg1:string):Promise<main.Snapshot>;
 
@@ -23,6 +27,8 @@ export function InstallSkills(arg1:string,arg2:Array<string>):Promise<main.Snaps
 export function PreviewSkills(arg1:string):Promise<Array<main.SkillCandidate>>;
 
 export function ReadPrompt(arg1:string):Promise<string>;
+
+export function ReadReference(arg1:string):Promise<string>;
 
 export function Refresh():Promise<main.Snapshot>;
 
@@ -43,5 +49,7 @@ export function ToggleSkill(arg1:string,arg2:string,arg3:boolean):Promise<main.S
 export function UpdateHostPaths(arg1:string,arg2:string,arg3:string,arg4:string):Promise<main.Snapshot>;
 
 export function UpdatePrompt(arg1:string,arg2:string,arg3:string):Promise<main.Snapshot>;
+
+export function UpdateReference(arg1:string,arg2:string,arg3:string):Promise<main.Snapshot>;
 
 export function UpdateSkill(arg1:string):Promise<main.Snapshot>;

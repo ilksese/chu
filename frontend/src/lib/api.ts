@@ -66,6 +66,13 @@ export type Prompt = {
   modeByHost: Record<string, string>
 }
 
+export type Reference = {
+  id: string
+  name: string
+  source: string
+  preview: string
+}
+
 export type Snapshot = {
   root: string
   hosts: Host[]
@@ -73,6 +80,7 @@ export type Snapshot = {
   mcps: MCP[]
   agents: Agent[]
   prompts: Prompt[]
+  references: Reference[]
   lastScan: string
 }
 
@@ -118,6 +126,10 @@ type AppAPI = {
   UpdatePrompt: (id: string, name: string, content: string) => Promise<Snapshot>
   DeletePrompt: (id: string) => Promise<Snapshot>
   TogglePrompt: (id: string, hostID: string, enabled: boolean) => Promise<Snapshot>
+  CreateReference: (name: string, content: string) => Promise<Snapshot>
+  ReadReference: (id: string) => Promise<string>
+  UpdateReference: (id: string, name: string, content: string) => Promise<Snapshot>
+  DeleteReference: (id: string) => Promise<Snapshot>
 }
 
 declare global {
@@ -137,6 +149,9 @@ let demoSnapshot: Snapshot = {
   prompts: [
     { id: "default", name: "default", source: "~/.chu/prompts/default.md", preview: "先读仓库约定，再改代码。", enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "link" } },
   ],
+  references: [
+    { id: "project-conventions.md", name: "project-conventions", source: "~/.chu/references/project-conventions.md", preview: "项目约定与常用上下文。" },
+  ],
   skills: [
     { id: "code-review", name: "code-review", description: "聚焦风险、回归与测试缺口的代码审查", tracked: true, repository: "https://github.com/example/skills", source: "~/.chu/skills/code-review", managed: true, enabledOn: { opencode: true, claude: true, codex: false }, modeByHost: { opencode: "link", claude: "link" } },
     { id: "release-notes", name: "release-notes", description: "从提交历史生成可发布的变更说明", tracked: true, repository: "https://github.com/example/skills", source: "~/.chu/skills/release-notes", managed: true, enabledOn: { opencode: true, claude: false, codex: false }, modeByHost: { opencode: "copy" } },
@@ -151,6 +166,8 @@ let demoSnapshot: Snapshot = {
     { id: "release-manager", name: "release-manager", description: "负责发布检查、版本说明和回滚提示", model: "inherit", source: "chu", managed: true, enabledOn: { opencode: true, claude: false, codex: false } },
   ],
 }
+
+const demoReferenceContent = new Map<string, string>([["project-conventions.md", "项目约定与常用上下文。"]])
 
 function api() {
   return window.go?.main?.App
@@ -302,6 +319,40 @@ export async function togglePrompt(id: string, hostID: string, enabled: boolean)
     if (!enabled) return item.id === id ? { ...item, enabledOn: { ...item.enabledOn, [hostID]: false } } : item
     return { ...item, enabledOn: { ...item.enabledOn, [hostID]: item.id === id }, modeByHost: item.id === id ? { ...item.modeByHost, [hostID]: "link" } : item.modeByHost }
   }) }
+  return demoSnapshot
+}
+
+export async function createReference(name: string, content: string) {
+  const backend = api()
+  if (backend) return backend.CreateReference(name, content)
+  const normalizedName = name.trim().replace(/\.md$/, "")
+  const id = `${normalizedName}.md`
+  demoReferenceContent.set(id, content)
+  demoSnapshot = { ...demoSnapshot, references: [...demoSnapshot.references, { id, name: normalizedName, source: `~/.chu/references/${id}`, preview: content.slice(0, 80) }] }
+  return demoSnapshot
+}
+
+export async function readReference(id: string) {
+  const backend = api()
+  return backend ? backend.ReadReference(id) : demoReferenceContent.get(id) ?? ""
+}
+
+export async function updateReference(id: string, name: string, content: string) {
+  const backend = api()
+  if (backend) return backend.UpdateReference(id, name, content)
+  const normalizedName = name.trim().replace(/\.md$/, "")
+  const nextID = `${normalizedName}.md`
+  demoReferenceContent.delete(id)
+  demoReferenceContent.set(nextID, content)
+  demoSnapshot = { ...demoSnapshot, references: demoSnapshot.references.map((item) => item.id === id ? { id: nextID, name: normalizedName, source: `~/.chu/references/${nextID}`, preview: content.slice(0, 80) } : item) }
+  return demoSnapshot
+}
+
+export async function deleteReference(id: string) {
+  const backend = api()
+  if (backend) return backend.DeleteReference(id)
+  demoReferenceContent.delete(id)
+  demoSnapshot = { ...demoSnapshot, references: demoSnapshot.references.filter((item) => item.id !== id) }
   return demoSnapshot
 }
 

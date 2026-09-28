@@ -429,7 +429,7 @@ func (a *App) promptViewsLocked(lock *skillLockFile, specs []hostSpec) []PromptV
 		}
 		views = append(views, PromptView{
 			ID: id, Name: item.Name, Source: filepath.Join(a.promptsDir(), item.File),
-			Preview: promptPreview(filepath.Join(a.promptsDir(), item.File)), EnabledOn: enabled, ModeByHost: modes,
+			Preview: markdownPreview(filepath.Join(a.promptsDir(), item.File)), EnabledOn: enabled, ModeByHost: modes,
 		})
 	}
 	sort.Slice(views, func(i, j int) bool { return views[i].Name < views[j].Name })
@@ -459,7 +459,7 @@ func (a *App) promptsDir() string {
 	return filepath.Join(a.root, "prompts")
 }
 
-func promptPreview(path string) string {
+func markdownPreview(path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
