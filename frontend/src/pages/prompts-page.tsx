@@ -165,7 +165,7 @@ function PromptDialog({
         </label>
         <label className="grid gap-1.5 text-[11px] font-bold text-[#5c3613]">
           内容
-          <textarea name="content" className="min-h-[180px] rounded-md border-2 border-black px-3 py-2 text-xs outline-none focus:border-[#e92929]" value={content} onChange={(event) => setContent(event.target.value)} />
+          <textarea name="content" rows={27} className="min-h-[180px] rounded-md border-2 border-black px-3 py-2 text-xs outline-none focus:border-[#e92929]" value={content} onChange={(event) => setContent(event.target.value)} />
         </label>
         <span className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>取消</Button>
