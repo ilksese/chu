@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Chu app icon</title>
+  <desc id="desc">A cheerful yellow electric mascot with lightning ears and a gentle smile.</desc>
+  <rect x="92" y="96" width="840" height="840" rx="210" fill="#000000"/>
+  <rect x="72" y="72" width="840" height="840" rx="210" fill="#fffdf4" stroke="#000000" stroke-width="28"/>
+
+  <path d="M374 408 246 318l30-54-66-42 92-84 24 116 76-20-32 174Z" fill="#f4dc26" stroke="#000000" stroke-width="28" stroke-linejoin="round"/>
+  <path d="m650 408 128-90-30-54 66-42-92-84-24 116-76-20 32 174Z" fill="#f4dc26" stroke="#000000" stroke-width="28" stroke-linejoin="round"/>
+  <path d="m246 318 30-54-66-42 92-84 13 64-55 59 45 29-20 41Z" fill="#5c3613"/>
+  <path d="m778 318-30-54 66-42-92-84-13 64 55 59-45 29 20 41Z" fill="#5c3613"/>
+
+  <path d="M300 338c58-45 136-68 212-68s154 23 212 68c56 43 76 119 72 207-6 151-106 245-284 249-178-4-278-98-284-249-4-88 16-164 72-207Z" fill="#ffe62d" stroke="#000000" stroke-width="28" stroke-linejoin="round"/>
+  <path d="M350 382c46-30 102-44 162-44" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" opacity=".72"/>
+
+  <ellipse cx="397" cy="492" rx="39" ry="53" fill="#000000"/>
+  <ellipse cx="627" cy="492" rx="39" ry="53" fill="#000000"/>
+  <circle cx="410" cy="475" r="12" fill="#ffffff"/>
+  <circle cx="640" cy="475" r="12" fill="#ffffff"/>
+
+  <path d="m282 556 75-27-22 49 48 10-88 63 25-56-47-10Z" fill="#5c3613" stroke="#000000" stroke-width="12" stroke-linejoin="round"/>
+  <path d="m742 556-75-27 22 49-48 10 88 63-25-56 47-10Z" fill="#5c3613" stroke="#000000" stroke-width="12" stroke-linejoin="round"/>
+
+  <path d="m512 552-18 18h36Z" fill="#000000" stroke="#000000" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M444 610c18 40 47 59 68 59s50-19 68-59" fill="none" stroke="#000000" stroke-width="18" stroke-linecap="round"/>
+  <path d="M480 665c17 13 47 13 64 0" fill="none" stroke="#5c3613" stroke-width="14" stroke-linecap="round"/>
+</svg>
