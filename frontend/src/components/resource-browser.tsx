@@ -9,12 +9,12 @@ import { Popover } from "@/components/ui/popover";
 import { resourceMeta, type Resource, type ResourceKind } from "@/lib/resources";
 
 const resourceIcon = tv({
-  base: "grid size-9 shrink-0 place-items-center rounded-md border border-black [&_svg]:size-4",
-  variants: { kind: { skills: "bg-primary", mcps: "bg-[#e8f0fc] text-[#2469d8]", agents: "bg-[#f7f5ec] text-[#5c3613]" } },
+  base: "grid size-9 shrink-0 place-items-center rounded-md border border-border [&_svg]:size-4",
+  variants: { kind: { skills: "bg-primary", mcps: "bg-info-surface text-info", agents: "bg-muted text-muted-foreground" } },
 });
 const rowAction = tv({
-  base: "grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-[#5c3613] hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4",
-  variants: { danger: { true: "hover:bg-[#e92929] hover:text-white" } },
+  base: "grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-muted-foreground hover:bg-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4",
+  variants: { danger: { true: "hover:bg-destructive hover:text-destructive-foreground" } },
 });
 
 function ResourceIcon({ kind }: { kind: ResourceKind }) {
@@ -55,11 +55,11 @@ export function ResourceList({
   const visibleHosts = hosts.filter((host) => host.installed);
   if (items.length === 0) {
     return (
-      <div className="grid min-h-[280px] place-items-center p-8 text-center text-[#5c3613]">
-        <span className="grid size-[42px] place-items-center rounded-md border border-black bg-primary [&_svg]:size-5">
+      <div className="grid min-h-[280px] place-items-center p-8 text-center text-muted-foreground">
+        <span className="grid size-[42px] place-items-center rounded-md border border-border bg-primary [&_svg]:size-5">
           <ResourceIcon kind={kind} />
         </span>
-        <strong className="mt-2.5 text-sm text-black">还没有资源</strong>
+        <strong className="mt-2.5 text-sm text-foreground">还没有资源</strong>
         <p className="mt-1 text-[11px]">使用右上角的新建按钮添加第一个条目。</p>
       </div>
     );
@@ -67,7 +67,7 @@ export function ResourceList({
 
   return (
     <div className="min-w-[660px]">
-      <div className="grid min-h-[38px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-black bg-[#f7f5ec] px-3.5 text-[9px] font-bold text-[#5c3613] uppercase">
+      <div className="grid min-h-[38px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-border bg-muted px-3.5 text-[9px] font-bold text-muted-foreground uppercase">
         <span className="col-span-2">资源</span>
         <div className="grid grid-flow-col justify-end gap-2 text-center auto-cols-[minmax(72px,max-content)]" aria-label="Agent 宿主">
           {visibleHosts.map((host) => (
@@ -81,9 +81,9 @@ export function ResourceList({
         return (
         <div
           key={item.id}
-          className="relative grid min-h-[84px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 overflow-hidden border-b border-[#5c3613] bg-white px-3.5 py-3 text-left last:border-b-0 hover:bg-[#fffbe8]"
+          className="relative grid min-h-[84px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 overflow-hidden border-b border-muted-foreground bg-card px-3.5 py-3 text-left last:border-b-0 hover:bg-primary-muted"
         >
-          {update?.status === "update" ? <span className="pointer-events-none absolute top-3.5 -left-7 z-4 h-4 w-21 -rotate-45 border-y border-black bg-primary text-center text-[9px] leading-[13px] font-extrabold tracking-widest uppercase shadow-[0_1px_0_#000]">new</span> : null}
+          {update?.status === "update" ? <span className="pointer-events-none absolute top-3.5 -left-7 z-4 h-4 w-21 -rotate-45 border-y border-border bg-primary text-center text-[9px] leading-[13px] font-extrabold tracking-widest uppercase shadow-neo-xs">new</span> : null}
           <span className={resourceIcon({ kind, className: "relative z-2" })}>
             <ResourceIcon kind={kind} />
           </span>
@@ -100,10 +100,10 @@ export function ResourceList({
                 <Badge tone="neutral" size="sm">copy</Badge>
               ) : null}
               {kind === "mcps" && (item as MCP).hasCredentials ? (
-                <KeyRound className="size-3 text-[#f29c1f]" aria-label="包含敏感值" />
+                <KeyRound className="size-3 text-warning" aria-label="包含敏感值" />
               ) : null}
             </span>
-            <span className="truncate text-[11px] text-[#5c3613]">{item.description || "未填写描述"}</span>
+            <span className="truncate text-[11px] text-muted-foreground">{item.description || "未填写描述"}</span>
             <span className="truncate text-[9px] text-neutral-400">{resourceMeta(item, kind)}</span>
           </span>
           {!item.managed && kind === "skills" ? (
@@ -156,7 +156,7 @@ export function ResourceList({
               </button>
               <Popover open={pendingDelete === item.id} anchor={{ current: pendingDelete ? deleteAnchors.current.get(pendingDelete) ?? null : null }} onClose={() => setPendingDelete(undefined)}>
                 <strong className="block">删除 {item.name}？</strong>
-                <p className="my-1.5 block text-xs text-[#5c3613]">宿主上的部署和中央副本都会移除。</p>
+                <p className="my-1.5 block text-xs text-muted-foreground">宿主上的部署和中央副本都会移除。</p>
                 <span className="flex justify-end gap-2">
                   <Button type="button" variant="secondary" size="sm" onClick={() => setPendingDelete(undefined)}>取消</Button>
                   <Button type="button" variant="danger" size="sm" disabled={busy === `delete:${item.id}`} onClick={() => onDelete?.(item.id)}>删除</Button>

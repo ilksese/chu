@@ -30,10 +30,10 @@ import { useAppStore } from "@/stores/app-store";
 
 type ShowcaseKind = ResourceKind | "prompts";
 
-const iconButton = "inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-black bg-white shadow-[2px_2px_0_#000] hover:-translate-x-px hover:-translate-y-px hover:bg-[#ffe62d] [&_svg]:size-4";
+const iconButton = "inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-border bg-card shadow-neo-sm hover:-translate-x-px hover:-translate-y-px hover:bg-primary-hover [&_svg]:size-4";
 const statIcon = tv({
-  base: "grid size-[38px] shrink-0 place-items-center rounded-md border border-black [&_svg]:size-[18px]",
-  variants: { tone: { green: "bg-[#e8f8ec] text-[#229948]", yellow: "bg-primary text-black", blue: "bg-[#e8f0fc] text-[#2469d8]", amber: "bg-[#fde8c8] text-[#5c3613]" } },
+  base: "grid size-[38px] shrink-0 place-items-center rounded-md border border-border [&_svg]:size-[18px]",
+  variants: { tone: { green: "bg-success-muted text-success", yellow: "bg-primary text-primary-foreground", blue: "bg-info-surface text-info", amber: "bg-warning-surface text-warning-foreground" } },
 });
 
 type ShowcaseItem = {
@@ -171,7 +171,7 @@ function FeatureCarousel({
 
   return (
     <section
-      className="overflow-hidden rounded-lg border-2 border-black bg-[#f7f5ec] p-6 shadow-[4px_4px_0_#000]"
+      className="overflow-hidden rounded-lg border-2 border-border bg-muted p-6 shadow-neo"
       aria-label="功能浏览"
       aria-roledescription="carousel"
       tabIndex={0}
@@ -276,7 +276,7 @@ function FeatureCarousel({
         }}
       >
         <div
-          className="absolute bottom-[23px] left-1/2 h-[86px] w-[min(760px,82%)] -translate-x-1/2 rotate-x-[69deg] rounded-full border-2 border-dashed border-[#5c3613]/55"
+          className="absolute bottom-[23px] left-1/2 h-[86px] w-[min(760px,82%)] -translate-x-1/2 rotate-x-[69deg] rounded-full border-2 border-dashed border-muted-foreground/55"
           aria-hidden="true"
         />
         <div
@@ -304,7 +304,7 @@ function FeatureCarousel({
                 >
                   <article
                     aria-hidden={accessible ? undefined : true}
-                    className={`relative grid h-[292px] w-[clamp(300px,36vw,430px)] -translate-x-1/2 -translate-y-1/2 grid-rows-[auto_1fr_auto] overflow-hidden rounded-lg border-2 border-black bg-white p-[18px] text-left text-black shadow-[2px_2px_0_#000] transition-[box-shadow] duration-200 motion-reduce:transition-none data-[active=true]:shadow-[6px_6px_0_#000] ${accessible ? "" : "pointer-events-none"}`}
+                    className={`relative grid h-[292px] w-[clamp(300px,36vw,430px)] -translate-x-1/2 -translate-y-1/2 grid-rows-[auto_1fr_auto] overflow-hidden rounded-lg border-2 border-border bg-card p-[18px] text-left text-card-foreground shadow-neo-sm transition-[box-shadow] duration-200 motion-reduce:transition-none data-[active=true]:shadow-neo-lg ${accessible ? "" : "pointer-events-none"}`}
                     data-active={active}
                     style={{ backfaceVisibility: "hidden" }}
                   >
@@ -320,23 +320,23 @@ function FeatureCarousel({
                         else selectRenderedSlot(slotIndex);
                       }}
                     />
-                    <span className="flex items-center justify-between text-[10px] font-extrabold text-[#5c3613]">
+                    <span className="flex items-center justify-between text-[10px] font-extrabold text-muted-foreground">
                       <span>{item.id.toUpperCase()}</span>
                       <small>{String(itemIndex + 1).padStart(2, "0")}</small>
                     </span>
-                    <span className="absolute top-[50px] right-[18px] grid size-12 place-items-center rounded-md border-2 border-black bg-primary shadow-[2px_2px_0_#000] [&_svg]:size-6">
+                    <span className="absolute top-[50px] right-[18px] grid size-12 place-items-center rounded-md border-2 border-border bg-primary shadow-neo-sm [&_svg]:size-6">
                       <Icon />
                     </span>
-                    <span className="max-w-[72%] self-end pb-6 [&_strong]:mb-2 [&_strong]:block [&_strong]:text-[29px] [&_strong]:leading-none [&_span]:block [&_span]:text-[13px] [&_span]:leading-normal [&_span]:text-[#5c3613]">
+                    <span className="max-w-[72%] self-end pb-6 [&_strong]:mb-2 [&_strong]:block [&_strong]:text-[29px] [&_strong]:leading-none [&_span]:block [&_span]:text-[13px] [&_span]:leading-normal [&_span]:text-muted-foreground">
                       <strong>{item.label}</strong>
                       <span>{item.description}</span>
                     </span>
-                    <span className="flex items-center justify-between border-t border-[#5c3613] pt-3.5">
+                    <span className="flex items-center justify-between border-t border-muted-foreground pt-3.5">
                       <span>
                         <strong>{item.count}</strong>
                         <small>{item.detail}</small>
                       </span>
-                      <span className="grid size-9 place-items-center rounded-full border-2 border-black bg-primary [&_svg]:size-4">
+                      <span className="grid size-9 place-items-center rounded-full border-2 border-border bg-primary [&_svg]:size-4">
                         <ArrowRight />
                       </span>
                     </span>
@@ -348,7 +348,7 @@ function FeatureCarousel({
         </div>
       </div>
 
-      <div className="flex min-h-7 items-center justify-between text-[#5c3613]">
+      <div className="flex min-h-7 items-center justify-between text-muted-foreground">
         <span className="flex items-center gap-1.5 text-[11px] [&_svg]:size-4">
           <MoveHorizontal />
           拖动、横向滚轮或方向键
@@ -359,7 +359,7 @@ function FeatureCarousel({
               type="button"
               key={item.id}
               aria-label={`浏览 ${item.label}`}
-              className="h-2 w-[26px] cursor-pointer rounded-full border border-black bg-[#cccccc] p-0 aria-[current=true]:scale-x-145 aria-[current=true]:bg-primary"
+              className="h-2 w-[26px] cursor-pointer rounded-full border border-border bg-neutral-300 p-0 aria-[current=true]:scale-x-145 aria-[current=true]:bg-primary"
               aria-current={index === activeIndex ? "true" : undefined}
               onClick={() => selectItem(index)}
             />
@@ -430,8 +430,8 @@ export function OverviewPage() {
         onOpen={openView}
       />
 
-      <section className="mt-6 grid grid-cols-4 overflow-hidden rounded-lg border-2 border-black bg-white max-[1120px]:grid-cols-2" aria-label="资源状态">
-        <article className="flex min-w-0 items-center gap-3 border-r border-black p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-[#5c3613] [&_em]:truncate [&_em]:text-[10px] [&_em]:text-[#5c3613] [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-[#5c3613]">
+      <section className="mt-6 grid grid-cols-4 overflow-hidden rounded-lg border-2 border-border bg-card max-[1120px]:grid-cols-2" aria-label="资源状态">
+        <article className="flex min-w-0 items-center gap-3 border-r border-border p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-muted-foreground [&_em]:truncate [&_em]:text-[10px] [&_em]:text-muted-foreground [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-muted-foreground">
           <span className={statIcon({ tone: "green" })}>
             <TerminalSquare />
           </span>
@@ -444,7 +444,7 @@ export function OverviewPage() {
             <em>自动扫描本机</em>
           </div>
         </article>
-        <article className="flex min-w-0 items-center gap-3 border-r border-black p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-[#5c3613] [&_em]:truncate [&_em]:text-[10px] [&_em]:text-[#5c3613] [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-[#5c3613]">
+        <article className="flex min-w-0 items-center gap-3 border-r border-border p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-muted-foreground [&_em]:truncate [&_em]:text-[10px] [&_em]:text-muted-foreground [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-muted-foreground">
           <span className={statIcon({ tone: "yellow" })}>
             <Link2 />
           </span>
@@ -454,7 +454,7 @@ export function OverviewPage() {
             <em>link 优先</em>
           </div>
         </article>
-        <article className="flex min-w-0 items-center gap-3 border-r border-black p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-[#5c3613] [&_em]:truncate [&_em]:text-[10px] [&_em]:text-[#5c3613] [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-[#5c3613]">
+        <article className="flex min-w-0 items-center gap-3 border-r border-border p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-muted-foreground [&_em]:truncate [&_em]:text-[10px] [&_em]:text-muted-foreground [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-muted-foreground">
           <span className={statIcon({ tone: "blue" })}>
             <FolderCog />
           </span>
@@ -468,7 +468,7 @@ export function OverviewPage() {
             <em>位于 {snapshot.root}</em>
           </div>
         </article>
-        <article className="flex min-w-0 items-center gap-3 border-r border-black p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-[#5c3613] [&_em]:truncate [&_em]:text-[10px] [&_em]:text-[#5c3613] [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-[#5c3613]">
+        <article className="flex min-w-0 items-center gap-3 border-r border-border p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-muted-foreground [&_em]:truncate [&_em]:text-[10px] [&_em]:text-muted-foreground [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-muted-foreground">
           <span className={statIcon({ tone: "amber" })}>
             <CircleAlert />
           </span>
@@ -488,16 +488,16 @@ export function OverviewPage() {
         </div>
         <div className="grid grid-cols-3 gap-3 max-[1120px]:grid-cols-1">
           {snapshot.hosts.map((host) => (
-            <article key={host.id} className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-black bg-white p-3 shadow-[2px_2px_0_#000]">
+            <article key={host.id} className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-border bg-card p-3 shadow-neo-sm">
               <HostMark host={host} />
               <div className="grid min-w-0">
                 <strong className="truncate text-xs">{host.name}</strong>
-                <span className="mt-1 flex items-center gap-1.5 text-[10px] text-[#5c3613]">
+                <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <StatusDot ready={host.installed} />
                   {host.installed ? "已连接" : "未检测到"}
                 </span>
               </div>
-              <code className="text-[9px] text-[#5c3613]">{host.format.toUpperCase()}</code>
+              <code className="text-[9px] text-muted-foreground">{host.format.toUpperCase()}</code>
             </article>
           ))}
         </div>

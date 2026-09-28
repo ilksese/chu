@@ -161,7 +161,7 @@ async function capture(request: DebugRequest) {
     dpr: 1,
     scale: 1,
     width: Math.min(Math.ceil(rect.width), 1360),
-    backgroundColor: "#fffdf4",
+    backgroundColor: getComputedStyle(document.body).backgroundColor,
     embedFonts: false,
   });
   return { image: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height, filename: request.filename };

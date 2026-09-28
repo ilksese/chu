@@ -3,14 +3,14 @@ import type { Host } from "@/lib/api";
 import { HostIcon } from "@/components/host-icons";
 
 const hostMark = tv({
-  base: "grid shrink-0 place-items-center overflow-hidden rounded-md border border-black",
+  base: "grid shrink-0 place-items-center overflow-hidden rounded-md border border-border",
   variants: { compact: { true: "size-[30px]", false: "size-10" } },
   defaultVariants: { compact: false },
 });
 
 const statusDot = tv({
-  base: "inline-block size-[7px] rounded-full border border-black",
-  variants: { ready: { true: "bg-[#229948]", false: "bg-[#cccccc]" } },
+  base: "inline-block size-[7px] rounded-full border border-border",
+  variants: { ready: { true: "bg-success", false: "bg-neutral-300" } },
 });
 
 export function HostMark({ host, compact = false }: { host: Host; compact?: boolean }) {
@@ -42,7 +42,7 @@ export function Switch({
         aria-label={label}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className="relative h-[19px] w-8 rounded-full border-2 border-black bg-[#cccccc] transition peer-checked:bg-primary peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#e92929] peer-disabled:cursor-not-allowed peer-disabled:opacity-45 after:absolute after:top-0.5 after:left-0.5 after:size-[11px] after:rounded-full after:border after:border-black after:bg-white after:transition peer-checked:after:translate-x-[13px]" />
+      <span className="relative h-[19px] w-8 rounded-full border-2 border-border bg-neutral-300 transition peer-checked:bg-primary peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-disabled:cursor-not-allowed peer-disabled:opacity-45 after:absolute after:top-0.5 after:left-0.5 after:size-[11px] after:rounded-full after:border after:border-border after:bg-card after:transition peer-checked:after:translate-x-[13px]" />
     </label>
   );
 }

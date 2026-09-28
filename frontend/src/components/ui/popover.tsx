@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref, 
 import { tv } from "tailwind-variants"
 
 const popover = tv({
-  base: "fixed inset-auto z-80 m-0 w-[min(240px,calc(100vw-24px))] rounded-lg border-2 border-black bg-white p-3 text-black shadow-[4px_4px_0_#000]",
+  base: "fixed inset-auto z-80 m-0 w-[min(240px,calc(100vw-24px))] rounded-lg border-2 border-border bg-card p-3 text-card-foreground shadow-neo",
 })
 
 function Popover({

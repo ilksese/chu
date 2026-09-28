@@ -13,7 +13,7 @@ import {
 
 
 const dockVariants = tv({
-  base: "flex items-center justify-center gap-2 border-2 border-black bg-white p-2 shadow-[3px_3px_0_#000]",
+  base: "flex items-center justify-center gap-2 border-2 border-border bg-card p-2 shadow-neo-button",
   variants: {
     orientation: {
       horizontal: "",

@@ -2,13 +2,13 @@ import type { ComponentProps } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 
 const badge = tv({
-  base: "inline-flex items-center rounded-full border border-black font-bold leading-none",
+  base: "inline-flex items-center rounded-full border border-border font-bold leading-none",
   variants: {
     tone: {
-      yellow: "bg-primary text-black",
-      neutral: "bg-[#f7f5ec] text-black",
-      warning: "bg-[#fde8c8] text-[#5c3613]",
-      info: "bg-[#e8f0fc] text-[#2469d8]",
+      yellow: "bg-primary text-primary-foreground",
+      neutral: "bg-muted text-foreground",
+      warning: "bg-warning-surface text-warning-foreground",
+      info: "bg-info-surface text-info",
     },
     size: {
       md: "min-h-[22px] px-2 text-[10px]",

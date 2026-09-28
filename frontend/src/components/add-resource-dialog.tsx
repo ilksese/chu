@@ -6,9 +6,9 @@ import type { ResourceKind } from "@/lib/resources";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 
-const field = "grid gap-1.5 text-[11px] font-bold text-[#5c3613] [&_input]:min-h-10 [&_input]:rounded-md [&_input]:border-2 [&_input]:border-black [&_input]:px-3 [&_input]:text-xs [&_input]:outline-none [&_input]:focus:border-[#e92929] [&_select]:min-h-10 [&_select]:rounded-md [&_select]:border-2 [&_select]:border-black [&_select]:px-3 [&_select]:text-xs [&_textarea]:min-h-[150px] [&_textarea]:rounded-md [&_textarea]:border-2 [&_textarea]:border-black [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-xs [&_textarea]:outline-none [&_textarea]:focus:border-[#e92929]";
+const field = "grid gap-1.5 text-[11px] font-bold text-muted-foreground [&_input]:min-h-10 [&_input]:rounded-md [&_input]:border-2 [&_input]:border-input [&_input]:px-3 [&_input]:text-xs [&_input]:outline-none [&_input]:focus:border-ring [&_select]:min-h-10 [&_select]:rounded-md [&_select]:border-2 [&_select]:border-input [&_select]:px-3 [&_select]:text-xs [&_textarea]:min-h-[150px] [&_textarea]:rounded-md [&_textarea]:border-2 [&_textarea]:border-input [&_textarea]:px-3 [&_textarea]:py-2 [&_textarea]:text-xs [&_textarea]:outline-none [&_textarea]:focus:border-ring";
 const skillOption = tv({
-  base: "grid grid-cols-[18px_minmax(0,1fr)] items-start gap-1.5 rounded-md border-2 border-black bg-[#f7f5ec] p-2 text-[11px] font-bold text-[#5c3613]",
+  base: "grid grid-cols-[18px_minmax(0,1fr)] items-start gap-1.5 rounded-md border-2 border-border bg-muted p-2 text-[11px] font-bold text-muted-foreground",
   variants: { picked: { true: "bg-primary" } },
 });
 
@@ -129,22 +129,22 @@ export function AddResourceDialog({
         ? "添加 MCP 服务"
         : "创建自定义 Agent";
   return (
-    <div className="fixed inset-0 z-100 grid place-items-center bg-black/58 p-6" role="presentation" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-100 grid place-items-center bg-foreground/58 p-6" role="presentation" onMouseDown={onClose}>
       <section
         ref={dialogRef}
-        className="max-h-[calc(100vh-48px)] w-[min(560px,100%)] overflow-auto rounded-lg border-2 border-black bg-white shadow-[8px_8px_0_#000]"
+        className="max-h-[calc(100vh-48px)] w-[min(560px,100%)] overflow-auto rounded-lg border-2 border-border bg-card shadow-neo-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b-2 border-black p-5">
+        <header className="flex items-center justify-between border-b-2 border-border p-5">
           <div>
             <h2 id="dialog-title" className="m-0 text-[21px] leading-tight font-extrabold">{title}</h2>
           </div>
           <button
             type="button"
-            className="inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-black bg-white shadow-[2px_2px_0_#000] [&_svg]:size-4"
+            className="inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-border bg-card shadow-neo-sm [&_svg]:size-4"
             aria-label="关闭"
             title="关闭"
             onClick={onClose}
@@ -197,7 +197,7 @@ export function AddResourceDialog({
                   ))}
                 </div>
               ) : null}
-              <p className="m-0 flex items-center gap-2 rounded border border-dashed border-[#5c3613] bg-[#f7f5ec] p-2.5 text-[10px] text-[#5c3613] [&_svg]:size-4 [&_code]:text-[9px]">
+              <p className="m-0 flex items-center gap-2 rounded border border-dashed border-muted-foreground bg-muted p-2.5 text-[10px] text-muted-foreground [&_svg]:size-4 [&_code]:text-[9px]">
                 <GitBranch />
                 默认不勾选。安装后写入 <code>~/.chu/chu-lock.json</code>。
               </p>
@@ -287,7 +287,7 @@ export function AddResourceDialog({
               </label>
             </>
           ) : null}
-          <footer className="-mx-5 -mb-5 flex justify-end gap-2.5 border-t-2 border-black bg-[#f7f5ec] px-5 py-3.5">
+          <footer className="-mx-5 -mb-5 flex justify-end gap-2.5 border-t-2 border-border bg-muted px-5 py-3.5">
             <Button type="button" variant="secondary" onClick={onClose}>
               取消
             </Button>

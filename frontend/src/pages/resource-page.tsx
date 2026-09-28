@@ -73,8 +73,8 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
           {copy.action}
         </Button>
       </section>
-      <div className="flex min-h-14 items-center justify-between rounded-t-lg border-2 border-b-0 border-black bg-white px-3 py-2">
-        <label className="flex h-[38px] w-[min(380px,68%)] items-center gap-2 rounded-md border-2 border-black bg-[#f7f5ec] px-3 text-[#5c3613] focus-within:border-[#e92929] focus-within:shadow-[0_0_0_3px_rgb(233_41_41/15%)] [&_svg]:size-4">
+      <div className="flex min-h-14 items-center justify-between rounded-t-lg border-2 border-b-0 border-border bg-card px-3 py-2">
+        <label className="flex h-[38px] w-[min(380px,68%)] items-center gap-2 rounded-md border-2 border-input bg-muted px-3 text-muted-foreground focus-within:border-ring focus-within:shadow-focus [&_svg]:size-4">
           <Search />
           <Input size="bare"
             aria-label="搜索资源"
@@ -83,10 +83,10 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
             placeholder="搜索名称或描述"
           />
         </label>
-        <span className="pr-1.5 text-[11px] text-[#5c3613] tabular-nums">{filtered.length} 个条目</span>
+        <span className="pr-1.5 text-[11px] text-muted-foreground tabular-nums">{filtered.length} 个条目</span>
       </div>
       <section>
-        <div className="min-w-0 overflow-x-auto rounded-b-lg border-2 border-black bg-white">
+        <div className="min-w-0 overflow-x-auto rounded-b-lg border-2 border-border bg-card">
           <ResourceList
             kind={kind}
             items={filtered}

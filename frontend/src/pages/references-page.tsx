@@ -22,7 +22,7 @@ export function ReferencesPage() {
   return (
     <>
       <section className="mb-6 flex items-center justify-between">
-        <span className="text-[11px] text-[#5c3613] tabular-nums">{references.length} 个条目</span>
+        <span className="text-[11px] text-muted-foreground tabular-nums">{references.length} 个条目</span>
         <Button
           type="button"
           variant="primary"
@@ -36,27 +36,27 @@ export function ReferencesPage() {
         </Button>
       </section>
 
-      <section className="min-w-0 overflow-x-auto rounded-lg border-2 border-black bg-white">
+      <section className="min-w-0 overflow-x-auto rounded-lg border-2 border-border bg-card">
         {references.length === 0 ? (
-          <div className="grid min-h-[280px] place-items-center p-8 text-center text-[#5c3613]">
-            <span className="grid size-[42px] place-items-center rounded-md border border-black bg-primary [&_svg]:size-5">
+          <div className="grid min-h-[280px] place-items-center p-8 text-center text-muted-foreground">
+            <span className="grid size-[42px] place-items-center rounded-md border border-border bg-primary [&_svg]:size-5">
               <BookOpenText />
             </span>
-            <strong className="mt-2.5 text-sm text-black">还没有参考文档</strong>
+            <strong className="mt-2.5 text-sm text-foreground">还没有参考文档</strong>
             <p className="mt-1 text-[11px]">添加后保存在 ~/.chu/references。</p>
           </div>
         ) : (
           <div className="min-w-[560px]">
-            <div className="grid min-h-[38px] grid-cols-[40px_minmax(240px,1fr)_76px] items-center gap-3 border-b border-black bg-[#f7f5ec] px-3.5 text-[9px] font-bold text-[#5c3613] uppercase">
+            <div className="grid min-h-[38px] grid-cols-[40px_minmax(240px,1fr)_76px] items-center gap-3 border-b border-border bg-muted px-3.5 text-[9px] font-bold text-muted-foreground uppercase">
               <span className="col-span-2">Reference</span>
               <span className="text-center">操作</span>
             </div>
             {references.map((item) => (
               <div
                 key={item.id}
-                className="grid min-h-[84px] grid-cols-[40px_minmax(240px,1fr)_76px] items-center gap-3 border-b border-[#5c3613] bg-white px-3.5 py-3 last:border-b-0 hover:bg-[#fffbe8]"
+                className="grid min-h-[84px] grid-cols-[40px_minmax(240px,1fr)_76px] items-center gap-3 border-b border-muted-foreground bg-card px-3.5 py-3 last:border-b-0 hover:bg-primary-muted"
               >
-                <span className="grid size-9 place-items-center rounded-md border border-black bg-primary [&_svg]:size-4">
+                <span className="grid size-9 place-items-center rounded-md border border-border bg-primary [&_svg]:size-4">
                   <BookOpenText />
                 </span>
                 <button
@@ -68,7 +68,7 @@ export function ReferencesPage() {
                   }}
                 >
                   <strong className="truncate text-[13px]">{item.name}</strong>
-                  <span className="truncate text-[11px] text-[#5c3613]">
+                  <span className="truncate text-[11px] text-muted-foreground">
                     {item.preview || "空文档"}
                   </span>
                   <span className="truncate text-[9px] text-neutral-400">{item.source}</span>
@@ -76,7 +76,7 @@ export function ReferencesPage() {
                 <span className="flex justify-end gap-1">
                   <button
                     type="button"
-                    className="grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-[#5c3613] hover:bg-primary hover:text-black [&_svg]:size-4"
+                    className="grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-muted-foreground hover:bg-primary hover:text-foreground [&_svg]:size-4"
                     aria-label={`编辑 ${item.name}`}
                     title="编辑"
                     onClick={(event) => {
@@ -92,7 +92,7 @@ export function ReferencesPage() {
                       else deleteAnchors.current.delete(item.id);
                     }}
                     type="button"
-                    className="grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-[#5c3613] hover:bg-[#e92929] hover:text-white [&_svg]:size-4"
+                    className="grid size-[30px] cursor-pointer place-items-center rounded border-0 bg-transparent p-0 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground [&_svg]:size-4"
                     aria-label={`删除 ${item.name}`}
                     title="删除"
                     onClick={() => setPendingDelete(item.id)}
@@ -109,7 +109,7 @@ export function ReferencesPage() {
                     onClose={() => setPendingDelete(undefined)}
                   >
                     <strong className="block">删除 {item.name}？</strong>
-                    <p className="my-1.5 block text-xs text-[#5c3613]">文件将从本机永久删除。</p>
+                    <p className="my-1.5 block text-xs text-muted-foreground">文件将从本机永久删除。</p>
                     <span className="flex justify-end gap-2">
                       <Button
                         type="button"
@@ -214,7 +214,7 @@ function ReferenceDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="m-auto w-[min(640px,calc(100%-48px))] rounded-lg border-2 border-black bg-white p-0 text-black shadow-[6px_6px_0_#000] backdrop:bg-black/35"
+      className="m-auto w-[min(640px,calc(100%-48px))] rounded-lg border-2 border-border bg-card p-0 text-card-foreground shadow-neo-lg backdrop:bg-foreground/35"
       aria-labelledby="reference-dialog-title"
       onCancel={(event) => {
         event.preventDefault();
@@ -241,14 +241,14 @@ function ReferenceDialog({
         <strong id="reference-dialog-title">
           {reference ? "编辑 Reference" : "添加 Reference"}
         </strong>
-        <label className="grid gap-1.5 text-[11px] font-bold text-[#5c3613]">
+        <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           名称
           <Input value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
         </label>
-        <label className="grid gap-1.5 text-[11px] font-bold text-[#5c3613]">
+        <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           Markdown 内容
           <textarea
-            className="min-h-[240px] resize-y rounded-md border-2 border-black px-3 py-2 text-xs leading-5 outline-none focus:border-[#e92929] focus:shadow-[0_0_0_3px_rgb(233_41_41/15%)] disabled:bg-neutral-100"
+            className="min-h-[240px] resize-y rounded-md border-2 border-input px-3 py-2 text-xs leading-5 outline-none focus:border-ring focus:shadow-focus disabled:bg-neutral-100"
             value={content}
             onChange={(event) => setContent(event.target.value)}
             disabled={initialContent === null}
@@ -256,7 +256,7 @@ function ReferenceDialog({
         </label>
         {loadError ? (
           <p
-            className="rounded border-2 border-[#e92929] bg-[#fff3f3] p-2.5 text-xs text-[#781818]"
+            className="rounded border-2 border-destructive bg-destructive-surface p-2.5 text-xs text-error-foreground"
             role="alert"
           >
             读取失败：{loadError}

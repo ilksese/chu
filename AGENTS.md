@@ -5,6 +5,8 @@
 - 使用中文回复。
 - Chu 是最小窗口 `1080x680` 的桌面 GUI，不做移动端适配。
 - UI 优先复用 `frontend/src/components/ui` 中的 Magic UI 组件，并遵循 `DESIGN.md` 与 `frontend/src/theme.css`；黄色只作强调色，红色只用于危险/错误状态。
+- UI 源码禁止硬编码主题颜色与阴影颜色，包括 `#hex`、`rgb/rgba`、`border-black`、`bg-white`、`text-black` 等固定色类；优先使用 `border-border`、`bg-card`、`text-foreground`、`text-muted-foreground`、`border-ring`、`bg-destructive`、`shadow-neo` 等 Tailwind 语义令牌。
+- 缺少所需颜色时，先在 `frontend/src/theme.css` 中定义基础 CSS 变量并通过 `@theme inline` 暴露语义令牌，再在组件中使用；仅第三方官方 Logo、品牌图形和不可主题化素材可保留原始填充色。
 
 ## 架构边界
 

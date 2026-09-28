@@ -32,7 +32,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error?: str
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <pre style={{ margin: 24, whiteSpace: "pre-wrap", color: "#111", fontSize: 12 }}>
+      <pre style={{ margin: 24, whiteSpace: "pre-wrap", color: "var(--pk-black-outline)", fontSize: 12 }}>
         {this.state.error}
       </pre>
     );

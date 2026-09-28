@@ -1,10 +1,10 @@
 import type { ComponentProps } from "react"
 import { tv } from "tailwind-variants"
 
-const card = tv({ base: "rounded-lg border-2 border-black bg-white text-black shadow-[2px_2px_0_#000]" })
+const card = tv({ base: "rounded-lg border-2 border-border bg-card text-card-foreground shadow-neo-sm" })
 const cardHeader = tv({ base: "grid items-start gap-2 px-6" })
 const cardTitle = tv({ base: "font-semibold leading-none" })
-const cardDescription = tv({ base: "text-sm text-[#5c3613]" })
+const cardDescription = tv({ base: "text-sm text-muted-foreground" })
 const cardAction = tv({ base: "col-start-2 row-span-2 row-start-1 self-start justify-self-end" })
 const cardContent = tv({ base: "px-6" })
 const cardFooter = tv({ base: "flex items-center px-6" })
