@@ -146,7 +146,7 @@ function PromptDialog({
       <form
         ref={dialogRef}
         className="grid w-[min(640px,100%)] gap-4 rounded-lg border-2 border-black bg-white p-5 shadow-[6px_6px_0_#000]"
-        onSubmit={async (event: FormEvent) => {
+        onSubmit={async (event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           const nextName = String(data.get("name") ?? name);
