@@ -1,4 +1,11 @@
-import { startTransition, useRef, useState, type CSSProperties } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+} from "motion/react";
 import { tv } from "tailwind-variants";
 import {
   ArrowLeft,
@@ -40,28 +47,127 @@ type ShowcaseItem = {
 
 function FeatureCarousel({
   items,
-  activeIndex,
-  onActiveChange,
   onOpen,
 }: {
   items: ShowcaseItem[];
-  activeIndex: number;
-  onActiveChange: (index: number) => void;
   onOpen: (kind: ShowcaseKind) => void;
 }) {
-  const dragStart = useRef<number | undefined>(undefined);
+  const ringCopies = 3;
+  const slots = Array.from({ length: ringCopies }, (_, copyIndex) =>
+    items.map((item, itemIndex) => ({
+      item,
+      itemIndex,
+      slotIndex: copyIndex * items.length + itemIndex,
+    })),
+  ).flat();
+  const angleStep = 360 / slots.length;
+  const ringRadius = 820;
+  const rotation = useMotionValue(0);
+  const prefersReducedMotion = useReducedMotion();
+  const animation = useRef<{ stop: () => void } | null>(null);
+  const targetRotation = useRef(0);
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startRotation: number;
+    lastX: number;
+    lastTime: number;
+    velocity: number;
+  } | null>(null);
+  const wheel = useRef<{ lastTime: number; velocity: number; timeout?: number }>({
+    lastTime: 0,
+    velocity: 0,
+  });
   const didDrag = useRef(false);
+  const [frontSlot, setFrontSlot] = useState(0);
+
+  function modulo(value: number, divisor: number) {
+    return ((value % divisor) + divisor) % divisor;
+  }
+
+  useMotionValueEvent(rotation, "change", (latest) => {
+    const slot = Math.round(-latest / angleStep);
+    setFrontSlot((current) => (current === slot ? current : slot));
+  });
+
+  useEffect(
+    () => () => {
+      animation.current?.stop();
+      if (wheel.current.timeout) window.clearTimeout(wheel.current.timeout);
+    },
+    [],
+  );
+
+  function animateToSlot(slot: number) {
+    const target = -slot * angleStep;
+    targetRotation.current = target;
+    animation.current?.stop();
+    if (prefersReducedMotion) {
+      rotation.set(target);
+      return;
+    }
+    animation.current = animate(rotation, target, {
+      type: "tween",
+      duration: 0.34,
+      ease: [0.16, 1, 0.3, 1],
+    });
+  }
+
+  function coast(velocity: number) {
+    animation.current?.stop();
+    const current = rotation.get();
+    const target = prefersReducedMotion
+      ? Math.round(current / angleStep) * angleStep
+      : Math.round((current + velocity * 0.22) / angleStep) * angleStep;
+    targetRotation.current = target;
+
+    if (prefersReducedMotion) {
+      rotation.set(target);
+      return;
+    }
+
+    animation.current = animate(rotation, 0, {
+      type: "inertia",
+      velocity,
+      power: 0.22,
+      timeConstant: 260,
+      restDelta: 0.1,
+      modifyTarget: () => target,
+    });
+  }
 
   function move(direction: -1 | 1) {
-    onActiveChange((activeIndex + direction + items.length) % items.length);
+    const currentSlot = Math.round(-targetRotation.current / angleStep);
+    animateToSlot(currentSlot + direction);
   }
 
-  function relativeOffset(index: number) {
-    let offset = index - activeIndex;
-    if (offset > items.length / 2) offset -= items.length;
-    if (offset < -items.length / 2) offset += items.length;
-    return offset;
+  function selectItem(itemIndex: number) {
+    const currentSlot = Math.round(-targetRotation.current / angleStep);
+    let distance = itemIndex - modulo(currentSlot, items.length);
+    if (distance > items.length / 2) distance -= items.length;
+    if (distance < -items.length / 2) distance += items.length;
+    animateToSlot(currentSlot + distance);
   }
+
+  function selectRenderedSlot(slotIndex: number) {
+    const currentSlot = Math.round(-targetRotation.current / angleStep);
+    const nearestSlot =
+      slotIndex + Math.round((currentSlot - slotIndex) / slots.length) * slots.length;
+    animateToSlot(nearestSlot);
+  }
+
+  function finishDrag(cancelled = false) {
+    const elapsed = drag.current ? performance.now() - drag.current.lastTime : Infinity;
+    const velocity = !cancelled && elapsed < 100 ? (drag.current?.velocity ?? 0) : 0;
+    drag.current = null;
+    coast(velocity);
+    window.setTimeout(() => {
+      didDrag.current = false;
+    }, 0);
+  }
+
+  const activeIndex = modulo(frontSlot, items.length);
+  const activeRenderedSlot = modulo(frontSlot, slots.length);
 
   return (
     <section
@@ -102,82 +208,150 @@ function FeatureCarousel({
       </div>
 
       <div
-        className="relative mx-[-24px] mt-1 h-[360px] cursor-grab touch-pan-y overflow-hidden perspective-[1200px] select-none active:cursor-grabbing"
+        className="relative mx-[-24px] mt-1 h-[360px] cursor-grab touch-pan-y overflow-hidden perspective-[1100px] select-none active:cursor-grabbing"
         onPointerDown={(event) => {
-          dragStart.current = event.clientX;
+          if (event.button !== 0) return;
+          animation.current?.stop();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          drag.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startRotation: rotation.get(),
+            lastX: event.clientX,
+            lastTime: performance.now(),
+            velocity: 0,
+          };
           didDrag.current = false;
+        }}
+        onPointerMove={(event) => {
+          if (drag.current?.pointerId !== event.pointerId) return;
+          const distance = event.clientX - drag.current.startX;
+          if (Math.abs(distance) > 5 && !didDrag.current) {
+            didDrag.current = true;
+            event.currentTarget.parentElement?.focus();
+          }
+          const now = performance.now();
+          const elapsed = now - drag.current.lastTime;
+          if (elapsed > 0) {
+            const velocity = ((event.clientX - drag.current.lastX) * 0.16 * 1000) / elapsed;
+            drag.current.velocity = drag.current.velocity * 0.55 + velocity * 0.45;
+            drag.current.lastX = event.clientX;
+            drag.current.lastTime = now;
+          }
+          const nextRotation = drag.current.startRotation + distance * 0.16;
+          rotation.set(nextRotation);
         }}
         onPointerUp={(event) => {
-          if (dragStart.current !== undefined) {
-            const distance = event.clientX - dragStart.current;
-            didDrag.current = Math.abs(distance) > 44;
-            if (didDrag.current) move(distance < 0 ? 1 : -1);
-          }
-          dragStart.current = undefined;
-          window.setTimeout(() => {
-            didDrag.current = false;
-          }, 0);
+          if (drag.current?.pointerId !== event.pointerId) return;
+          event.currentTarget.releasePointerCapture(event.pointerId);
+          finishDrag();
         }}
-        onPointerCancel={() => {
-          dragStart.current = undefined;
-          didDrag.current = false;
+        onPointerCancel={(event) => {
+          if (drag.current?.pointerId !== event.pointerId) return;
+          finishDrag(true);
+        }}
+        onWheel={(event) => {
+          const distance =
+            Math.abs(event.deltaX) > Math.abs(event.deltaY)
+              ? event.deltaX
+              : event.shiftKey
+                ? event.deltaY
+                : 0;
+          if (!distance) return;
+          const now = performance.now();
+          const elapsed = wheel.current.lastTime ? now - wheel.current.lastTime : 16;
+          const delta = -distance * 0.12;
+          const velocity = (delta * 1000) / Math.max(elapsed, 1);
+          wheel.current.velocity = wheel.current.velocity * 0.45 + velocity * 0.55;
+          wheel.current.lastTime = now;
+          animation.current?.stop();
+          rotation.set(rotation.get() + delta);
+          if (wheel.current.timeout) window.clearTimeout(wheel.current.timeout);
+          wheel.current.timeout = window.setTimeout(() => {
+            coast(wheel.current.velocity);
+            wheel.current.lastTime = 0;
+            wheel.current.velocity = 0;
+            wheel.current.timeout = undefined;
+          }, 90);
         }}
       >
-        <div className="absolute bottom-[23px] left-1/2 h-[86px] w-[min(760px,82%)] -translate-x-1/2 rotate-x-[69deg] rounded-full border-2 border-dashed border-[#5c3613]/55" aria-hidden="true" />
-        {items.map((item, index) => {
-          const offset = relativeOffset(index);
-          const Icon = item.icon;
-          const active = offset === 0;
-          const style = {
-            "--carousel-x": `${offset * 76}%`,
-            "--carousel-rotate": `${offset * -16}deg`,
-            "--carousel-scale": active ? 1 : 0.82,
-            "--carousel-depth": active ? "0px" : "-120px",
-            "--carousel-opacity": active ? 1 : 0.78,
-          } as CSSProperties;
+        <div
+          className="absolute bottom-[23px] left-1/2 h-[86px] w-[min(760px,82%)] -translate-x-1/2 rotate-x-[69deg] rounded-full border-2 border-dashed border-[#5c3613]/55"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 [transform-style:preserve-3d]"
+          style={{ transform: `translateZ(-${ringRadius}px)` }}
+        >
+          <motion.div
+            className="absolute inset-0 [transform-style:preserve-3d]"
+            style={{ rotateY: rotation }}
+          >
+            {slots.map(({ item, itemIndex, slotIndex }) => {
+              const Icon = item.icon;
+              const active = activeRenderedSlot === slotIndex;
+              const nearestAccessibleSlot =
+                itemIndex + Math.round((frontSlot - itemIndex) / items.length) * items.length;
+              const accessible = modulo(nearestAccessibleSlot, slots.length) === slotIndex;
 
-          return (
-            <article key={item.id} className="absolute top-1/2 left-1/2 z-1 grid h-[292px] w-[clamp(300px,36vw,430px)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-lg border-2 border-black bg-white p-[18px] text-left text-black opacity-(--carousel-opacity) shadow-[2px_2px_0_#000] transition data-[active=true]:z-3 data-[active=true]:shadow-[6px_6px_0_#000]" data-active={active} style={{ ...style, transform: "translate(-50%, -50%) translateX(var(--carousel-x)) translateZ(var(--carousel-depth)) rotateY(var(--carousel-rotate)) scale(var(--carousel-scale))" }}>
-              <button
-                type="button"
-                className="absolute inset-0 z-4 cursor-pointer rounded-md border-0 bg-transparent p-0"
-                aria-current={active ? "true" : undefined}
-                aria-label={active ? `打开 ${item.label}` : `浏览 ${item.label}`}
-                onClick={() => {
-                  if (didDrag.current) return;
-                  if (active) onOpen(item.id);
-                  else onActiveChange(index);
-                }}
-              />
-              <span className="flex items-center justify-between text-[10px] font-extrabold text-[#5c3613]">
-                <span>{item.id.toUpperCase()}</span>
-                <small>{String(index + 1).padStart(2, "0")}</small>
-              </span>
-              <span className="absolute top-[50px] right-[18px] grid size-12 place-items-center rounded-md border-2 border-black bg-primary shadow-[2px_2px_0_#000] [&_svg]:size-6">
-                <Icon />
-              </span>
-              <span className="max-w-[72%] self-end pb-6 [&_strong]:mb-2 [&_strong]:block [&_strong]:text-[29px] [&_strong]:leading-none [&_span]:block [&_span]:text-[13px] [&_span]:leading-normal [&_span]:text-[#5c3613]">
-                <strong>{item.label}</strong>
-                <span>{item.description}</span>
-              </span>
-              <span className="flex items-center justify-between border-t border-[#5c3613] pt-3.5">
-                <span>
-                  <strong>{item.count}</strong>
-                  <small>{item.detail}</small>
-                </span>
-                <span className="grid size-9 place-items-center rounded-full border-2 border-black bg-primary [&_svg]:size-4">
-                  <ArrowRight />
-                </span>
-              </span>
-            </article>
-          );
-        })}
+              return (
+                <div
+                  key={`${item.id}-${slotIndex}`}
+                  className="absolute top-1/2 left-1/2 size-0 [transform-style:preserve-3d]"
+                  style={{
+                    transform: `rotateY(${slotIndex * angleStep}deg) translateZ(${ringRadius}px)`,
+                  }}
+                >
+                  <article
+                    aria-hidden={accessible ? undefined : true}
+                    className={`relative grid h-[292px] w-[clamp(300px,36vw,430px)] -translate-x-1/2 -translate-y-1/2 grid-rows-[auto_1fr_auto] overflow-hidden rounded-lg border-2 border-black bg-white p-[18px] text-left text-black shadow-[2px_2px_0_#000] transition-[box-shadow] duration-200 motion-reduce:transition-none data-[active=true]:shadow-[6px_6px_0_#000] ${accessible ? "" : "pointer-events-none"}`}
+                    data-active={active}
+                    style={{ backfaceVisibility: "hidden" }}
+                  >
+                    <button
+                      type="button"
+                      className="absolute inset-0 z-4 cursor-pointer rounded-md border-0 bg-transparent p-0"
+                      aria-current={active ? "true" : undefined}
+                      aria-label={active ? `打开 ${item.label}` : `浏览 ${item.label}`}
+                      tabIndex={accessible ? 0 : -1}
+                      onClick={() => {
+                        if (didDrag.current) return;
+                        if (active) onOpen(item.id);
+                        else selectRenderedSlot(slotIndex);
+                      }}
+                    />
+                    <span className="flex items-center justify-between text-[10px] font-extrabold text-[#5c3613]">
+                      <span>{item.id.toUpperCase()}</span>
+                      <small>{String(itemIndex + 1).padStart(2, "0")}</small>
+                    </span>
+                    <span className="absolute top-[50px] right-[18px] grid size-12 place-items-center rounded-md border-2 border-black bg-primary shadow-[2px_2px_0_#000] [&_svg]:size-6">
+                      <Icon />
+                    </span>
+                    <span className="max-w-[72%] self-end pb-6 [&_strong]:mb-2 [&_strong]:block [&_strong]:text-[29px] [&_strong]:leading-none [&_span]:block [&_span]:text-[13px] [&_span]:leading-normal [&_span]:text-[#5c3613]">
+                      <strong>{item.label}</strong>
+                      <span>{item.description}</span>
+                    </span>
+                    <span className="flex items-center justify-between border-t border-[#5c3613] pt-3.5">
+                      <span>
+                        <strong>{item.count}</strong>
+                        <small>{item.detail}</small>
+                      </span>
+                      <span className="grid size-9 place-items-center rounded-full border-2 border-black bg-primary [&_svg]:size-4">
+                        <ArrowRight />
+                      </span>
+                    </span>
+                  </article>
+                </div>
+              );
+            })}
+          </motion.div>
+        </div>
       </div>
 
       <div className="flex min-h-7 items-center justify-between text-[#5c3613]">
         <span className="flex items-center gap-1.5 text-[11px] [&_svg]:size-4">
           <MoveHorizontal />
-          拖动或使用方向键
+          拖动、横向滚轮或方向键
         </span>
         <div className="flex gap-1.5" aria-label="选择功能">
           {items.map((item, index) => (
@@ -187,7 +361,7 @@ function FeatureCarousel({
               aria-label={`浏览 ${item.label}`}
               className="h-2 w-[26px] cursor-pointer rounded-full border border-black bg-[#cccccc] p-0 aria-[current=true]:scale-x-145 aria-[current=true]:bg-primary"
               aria-current={index === activeIndex ? "true" : undefined}
-              onClick={() => onActiveChange(index)}
+              onClick={() => selectItem(index)}
             />
           ))}
         </div>
@@ -202,7 +376,6 @@ function FeatureCarousel({
 export function OverviewPage() {
   const snapshot = useAppStore((state) => state.snapshot);
   const navigate = useNavigate();
-  const [carouselIndex, setCarouselIndex] = useState(0);
   const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
   const activeDeployments = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents, ...(snapshot.prompts ?? [])].reduce(
     (total, item) => total + Object.values(item.enabledOn).filter(Boolean).length,
@@ -254,8 +427,6 @@ export function OverviewPage() {
     <>
       <FeatureCarousel
         items={showcaseItems}
-        activeIndex={carouselIndex}
-        onActiveChange={setCarouselIndex}
         onOpen={openView}
       />
 
