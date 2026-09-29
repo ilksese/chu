@@ -81,7 +81,11 @@
     --status-warning-surface: #fde8c8;
   }
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar { display: none; }
   html, body, #root { min-height: 100%; margin: 0; }
   body { min-width: 320px; overflow-x: hidden; color: var(--pk-black-outline); background: var(--bg-canvas); }
   button, input, select, textarea { color: inherit; font: inherit; }
