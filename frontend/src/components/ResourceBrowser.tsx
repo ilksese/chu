@@ -93,7 +93,7 @@ export function ResourceList({
             <span key={host.id}>{host.name}</span>
           ))}
         </div>
-        <span />
+        <span className={kind === "skills" ? "w-[62px]" : undefined} />
       </div>
       {items.map((item) => {
         const update = updates.find((entry) => entry.id === item.id);
@@ -153,7 +153,7 @@ export function ResourceList({
                 导入
               </Button>
             ) : (
-              <span className="relative z-3 grid grid-flow-col items-center justify-end gap-2 auto-cols-[minmax(72px,max-content)]">
+              <span className="relative z-3 grid grid-flow-col items-center justify-end justify-items-center gap-2 auto-cols-[minmax(72px,max-content)]">
                 {visibleHosts.map((host) => {
                   const operation = `${kind}:${item.id}:${host.id}`;
                   return (
@@ -169,7 +169,7 @@ export function ResourceList({
               </span>
             )}
             {kind === "skills" && item.managed ? (
-              <span className="relative z-3 flex justify-end gap-0.5">
+              <span className="relative z-3 flex w-[62px] justify-end gap-0.5">
                 {(item as Skill).repository ? (
                   <button
                     type="button"
