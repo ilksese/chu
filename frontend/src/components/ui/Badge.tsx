@@ -1,5 +1,5 @@
-import type { ComponentProps } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import type { ComponentProps } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 
 const badge = tv({
   base: "inline-flex items-center rounded-full border border-border font-bold leading-none",
@@ -16,10 +16,15 @@ const badge = tv({
     },
   },
   defaultVariants: { tone: "yellow", size: "md" },
-})
+});
 
-function Badge({ className, tone, size, ...props }: ComponentProps<"span"> & VariantProps<typeof badge>) {
-  return <span className={badge({ tone, size, className })} {...props} />
+function Badge({
+  className,
+  tone,
+  size,
+  ...props
+}: ComponentProps<"span"> & VariantProps<typeof badge>) {
+  return <span className={badge({ tone, size, className })} {...props} />;
 }
 
-export { Badge, badge }
+export { Badge, badge };

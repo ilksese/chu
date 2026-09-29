@@ -27,7 +27,12 @@ function clean(value: string | null | undefined, limit = 160) {
 
 function labelOf(node: Element) {
   if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement) {
-    return clean(node.getAttribute("aria-label") || node.labels?.[0]?.textContent || node.placeholder || node.name);
+    return clean(
+      node.getAttribute("aria-label") ||
+        node.labels?.[0]?.textContent ||
+        node.placeholder ||
+        node.name,
+    );
   }
   return clean(node.getAttribute("aria-label") || node.getAttribute("title") || node.textContent);
 }
@@ -47,14 +52,21 @@ function roleOf(node: Element) {
 function interactive(node: Element) {
   if (node.getAttribute("aria-hidden") === "true") return false;
   if (node instanceof HTMLButtonElement || node instanceof HTMLAnchorElement) return true;
-  if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) return true;
+  if (
+    node instanceof HTMLInputElement ||
+    node instanceof HTMLTextAreaElement ||
+    node instanceof HTMLSelectElement
+  )
+    return true;
   return node.getAttribute("role") === "button";
 }
 
 function refreshHandles() {
   handles.clear();
   let index = 1;
-  for (const node of document.querySelectorAll("h1,h2,h3,button,a,input,textarea,select,[role='button']")) {
+  for (const node of document.querySelectorAll(
+    "h1,h2,h3,button,a,input,textarea,select,[role='button']",
+  )) {
     if (!interactive(node) && !/^H[1-6]$/.test(node.tagName)) continue;
     const rect = node.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1) continue;
@@ -87,14 +99,21 @@ function boxOf(node: Element) {
 
 function nodeInfo(handle: Handle) {
   const node = handle.node;
-  const input = node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement ? node : undefined;
+  const input =
+    node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement ? node : undefined;
   return {
     ref: handle.ref,
     role: roleOf(node),
     name: labelOf(node),
     value: input?.value,
-    checked: node instanceof HTMLInputElement && (node.type === "checkbox" || node.type === "radio") ? node.checked : undefined,
-    disabled: node instanceof HTMLButtonElement || node instanceof HTMLInputElement ? node.disabled : undefined,
+    checked:
+      node instanceof HTMLInputElement && (node.type === "checkbox" || node.type === "radio")
+        ? node.checked
+        : undefined,
+    disabled:
+      node instanceof HTMLButtonElement || node instanceof HTMLInputElement
+        ? node.disabled
+        : undefined,
     box: boxOf(node),
   };
 }
@@ -120,7 +139,9 @@ function find(text?: string) {
   const needle = (text || "").toLowerCase();
   return [...handles.entries()]
     .map(([ref, node]) => nodeInfo({ ref, node }))
-    .filter((item) => `${item.role} ${item.name} ${item.value || ""}`.toLowerCase().includes(needle));
+    .filter((item) =>
+      `${item.role} ${item.name} ${item.value || ""}`.toLowerCase().includes(needle),
+    );
 }
 
 function click(node: Element) {
@@ -129,7 +150,8 @@ function click(node: Element) {
 }
 
 function fill(node: Element, value: string) {
-  if (!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement)) throw new Error("not an input");
+  if (!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement))
+    throw new Error("not an input");
   node.focus();
   node.value = value;
   node.dispatchEvent(new Event("input", { bubbles: true }));
@@ -164,7 +186,12 @@ async function capture(request: DebugRequest) {
     backgroundColor: getComputedStyle(document.body).backgroundColor,
     embedFonts: false,
   });
-  return { image: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height, filename: request.filename };
+  return {
+    image: canvas.toDataURL("image/png"),
+    width: canvas.width,
+    height: canvas.height,
+    filename: request.filename,
+  };
 }
 
 export async function runDebug(request: DebugRequest) {
@@ -198,7 +225,8 @@ export async function runDebug(request: DebugRequest) {
     case "check":
     case "uncheck": {
       const node = resolve(request);
-      if (!(node instanceof HTMLInputElement) || node.type !== "checkbox") throw new Error("not a checkbox");
+      if (!(node instanceof HTMLInputElement) || node.type !== "checkbox")
+        throw new Error("not a checkbox");
       node.checked = request.op === "check";
       node.dispatchEvent(new Event("input", { bubbles: true }));
       node.dispatchEvent(new Event("change", { bubbles: true }));
@@ -217,7 +245,8 @@ export async function runDebug(request: DebugRequest) {
       return snapshot();
     case "type": {
       const active = document.activeElement;
-      if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) throw new Error("no focused input");
+      if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement))
+        throw new Error("no focused input");
       for (const char of request.text || "") {
         press(char);
         fill(active, `${active.value}${char}`);
@@ -227,7 +256,11 @@ export async function runDebug(request: DebugRequest) {
     case "scroll":
       return scrollBy(request.x || 0, request.y || 0);
     case "mousemove":
-      document.elementFromPoint(request.x || 0, request.y || 0)?.dispatchEvent(new MouseEvent("mousemove", { clientX: request.x, clientY: request.y, bubbles: true }));
+      document
+        .elementFromPoint(request.x || 0, request.y || 0)
+        ?.dispatchEvent(
+          new MouseEvent("mousemove", { clientX: request.x, clientY: request.y, bubbles: true }),
+        );
       return { x: request.x, y: request.y };
     case "goto":
       history.pushState({}, "", request.value || "/");
@@ -249,7 +282,11 @@ export async function runDebug(request: DebugRequest) {
     case "screenshot":
       return capture(request);
     case "localstorage-list":
-      return { items: Object.fromEntries(Object.keys(localStorage).map((key) => [key, localStorage.getItem(key)])) };
+      return {
+        items: Object.fromEntries(
+          Object.keys(localStorage).map((key) => [key, localStorage.getItem(key)]),
+        ),
+      };
     case "localstorage-get":
       return { value: storage("local").getItem(request.key || "") };
     case "localstorage-set":
@@ -262,7 +299,11 @@ export async function runDebug(request: DebugRequest) {
       storage("local").clear();
       return { cleared: true };
     case "sessionstorage-list":
-      return { items: Object.fromEntries(Object.keys(sessionStorage).map((key) => [key, sessionStorage.getItem(key)])) };
+      return {
+        items: Object.fromEntries(
+          Object.keys(sessionStorage).map((key) => [key, sessionStorage.getItem(key)]),
+        ),
+      };
     case "sessionstorage-get":
       return { value: storage("session").getItem(request.key || "") };
     case "sessionstorage-set":

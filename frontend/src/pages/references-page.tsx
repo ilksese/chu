@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useBeforeUnload } from "react-router";
 import { BookOpenText, FilePenLine, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover } from "@/components/ui/popover";
+import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Popover } from "@/components/ui/Popover";
 import { readReference, type Reference } from "@/lib/api";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 
 export function ReferencesPage() {
   const references = useAppStore((state) => state.snapshot.references).toSorted((left, right) =>
@@ -22,7 +23,9 @@ export function ReferencesPage() {
   return (
     <>
       <section className="mb-6 flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground tabular-nums">{references.length} 个条目</span>
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          {references.length} 个条目
+        </span>
         <Button
           type="button"
           variant="primary"
@@ -109,7 +112,9 @@ export function ReferencesPage() {
                     onClose={() => setPendingDelete(undefined)}
                   >
                     <strong className="block">删除 {item.name}？</strong>
-                    <p className="my-1.5 block text-xs text-muted-foreground">文件将从本机永久删除。</p>
+                    <p className="my-1.5 block text-xs text-muted-foreground">
+                      文件将从本机永久删除。
+                    </p>
                     <span className="flex justify-end gap-2">
                       <Button
                         type="button"
@@ -168,19 +173,12 @@ function ReferenceDialog({
   onCreate: (name: string, content: string) => Promise<boolean>;
   onUpdate: (item: Reference, name: string, content: string) => Promise<boolean>;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const initialName = reference?.name ?? "";
   const [name, setName] = useState(initialName);
   const [content, setContent] = useState("");
   const [initialContent, setInitialContent] = useState<string | null>(reference ? null : "");
   const [loadError, setLoadError] = useState("");
   const dirty = name !== initialName || (initialContent !== null && content !== initialContent);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.showModal();
-    return () => dialog?.close();
-  }, []);
 
   useEffect(() => {
     if (!reference) return;
@@ -207,22 +205,15 @@ function ReferenceDialog({
 
   function requestClose() {
     if (dirty && !window.confirm("有未保存的修改，确认放弃吗？")) return;
-    returnFocus?.focus();
     onClose();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="m-auto w-[min(640px,calc(100%-48px))] rounded-lg border-2 border-border bg-card p-0 text-card-foreground shadow-neo-lg backdrop:bg-foreground/35"
+    <Dialog
+      className="w-[min(640px,100%)] backdrop:bg-foreground/35"
       aria-labelledby="reference-dialog-title"
-      onCancel={(event) => {
-        event.preventDefault();
-        requestClose();
-      }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) requestClose();
-      }}
+      onClose={requestClose}
+      returnFocus={returnFocus}
     >
       <form
         className="grid gap-4 p-5"
@@ -233,7 +224,6 @@ function ReferenceDialog({
             ? await onUpdate(reference, name, content)
             : await onCreate(name, content);
           if (ok) {
-            returnFocus?.focus();
             onClose();
           }
         }}
@@ -243,7 +233,12 @@ function ReferenceDialog({
         </strong>
         <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           名称
-          <Input value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+            autoFocus
+          />
         </label>
         <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           Markdown 内容
@@ -275,6 +270,6 @@ function ReferenceDialog({
           </Button>
         </span>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

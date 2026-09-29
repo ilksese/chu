@@ -23,17 +23,25 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { viewPaths, type View } from "@/app/navigation";
-import { HostMark, StatusDot } from "@/components/host-controls";
-import { Button } from "@/components/ui/button";
+import { HostMark, StatusDot } from "@/components/HostControls";
+import { Button } from "@/components/ui/Button";
 import type { ResourceKind } from "@/lib/resources";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 
 type ShowcaseKind = ResourceKind | "prompts";
 
-const iconButton = "inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-border bg-card shadow-neo-sm hover:-translate-x-px hover:-translate-y-px hover:bg-primary-hover [&_svg]:size-4";
+const iconButton =
+  "inline-grid size-10 cursor-pointer place-items-center rounded-md border-2 border-border bg-card shadow-neo-sm hover:-translate-x-px hover:-translate-y-px hover:bg-primary-hover [&_svg]:size-4";
 const statIcon = tv({
   base: "grid size-[38px] shrink-0 place-items-center rounded-md border border-border [&_svg]:size-[18px]",
-  variants: { tone: { green: "bg-success-muted text-success", yellow: "bg-primary text-primary-foreground", blue: "bg-info-surface text-info", amber: "bg-warning-surface text-warning-foreground" } },
+  variants: {
+    tone: {
+      green: "bg-success-muted text-success",
+      yellow: "bg-primary text-primary-foreground",
+      blue: "bg-info-surface text-info",
+      amber: "bg-warning-surface text-warning-foreground",
+    },
+  },
 });
 
 type ShowcaseItem = {
@@ -377,10 +385,12 @@ export function OverviewPage() {
   const snapshot = useAppStore((state) => state.snapshot);
   const navigate = useNavigate();
   const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
-  const activeDeployments = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents, ...(snapshot.prompts ?? [])].reduce(
-    (total, item) => total + Object.values(item.enabledOn).filter(Boolean).length,
-    0,
-  );
+  const activeDeployments = [
+    ...snapshot.skills,
+    ...snapshot.mcps,
+    ...snapshot.agents,
+    ...(snapshot.prompts ?? []),
+  ].reduce((total, item) => total + Object.values(item.enabledOn).filter(Boolean).length, 0);
   const unmanaged = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents].filter(
     (item) => !item.managed,
   ).length;
@@ -425,12 +435,12 @@ export function OverviewPage() {
 
   return (
     <>
-      <FeatureCarousel
-        items={showcaseItems}
-        onOpen={openView}
-      />
+      <FeatureCarousel items={showcaseItems} onOpen={openView} />
 
-      <section className="mt-6 grid grid-cols-4 overflow-hidden rounded-lg border-2 border-border bg-card max-[1120px]:grid-cols-2" aria-label="资源状态">
+      <section
+        className="mt-6 grid grid-cols-4 overflow-hidden rounded-lg border-2 border-border bg-card max-[1120px]:grid-cols-2"
+        aria-label="资源状态"
+      >
         <article className="flex min-w-0 items-center gap-3 border-r border-border p-4 last:border-r-0 [&_div]:grid [&_div]:min-w-0 [&_small]:truncate [&_small]:text-[10px] [&_small]:text-muted-foreground [&_em]:truncate [&_em]:text-[10px] [&_em]:text-muted-foreground [&_em]:not-italic [&_strong]:text-[23px] [&_strong]:tabular-nums [&_strong_span]:text-xs [&_strong_span]:text-muted-foreground">
           <span className={statIcon({ tone: "green" })}>
             <TerminalSquare />
@@ -488,7 +498,10 @@ export function OverviewPage() {
         </div>
         <div className="grid grid-cols-3 gap-3 max-[1120px]:grid-cols-1">
           {snapshot.hosts.map((host) => (
-            <article key={host.id} className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-border bg-card p-3 shadow-neo-sm">
+            <article
+              key={host.id}
+              className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-border bg-card p-3 shadow-neo-sm"
+            >
               <HostMark host={host} />
               <div className="grid min-w-0">
                 <strong className="truncate text-xs">{host.name}</strong>
@@ -502,7 +515,6 @@ export function OverviewPage() {
           ))}
         </div>
       </section>
-
     </>
   );
 }

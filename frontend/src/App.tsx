@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { viewPaths } from "@/app/navigation";
-import { AppShell } from "@/components/app-shell";
+import { AppShell } from "@/components/AppShell";
 import { OverviewPage } from "@/pages/overview-page";
 import { PromptsPage } from "@/pages/prompts-page";
+import { ProjectsPage } from "@/pages/projects-page";
 import { ReferencesPage } from "@/pages/references-page";
 import { ResourcePage } from "@/pages/resource-page";
 import { SettingsPage } from "@/pages/settings-page";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 import "@/theme.css";
 
 function log(message: string) {
@@ -38,6 +39,7 @@ function App() {
       <div className="mx-auto w-[min(1280px,calc(100%-64px))] py-8 pb-14" key={location.pathname}>
         <Routes location={location}>
           <Route path={viewPaths.overview} element={<OverviewPage />} />
+          <Route path={viewPaths.projects} element={<ProjectsPage />} />
           <Route path={viewPaths.skills} element={<ResourcePage kind="skills" />} />
           <Route path={viewPaths.mcps} element={<ResourcePage kind="mcps" />} />
           <Route path={viewPaths.agents} element={<ResourcePage kind="agents" />} />

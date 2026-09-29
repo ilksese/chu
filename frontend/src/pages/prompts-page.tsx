@@ -1,12 +1,13 @@
 import { useDeferredValue, useEffect, useRef, useState, type FormEvent } from "react";
 import { Plus, ScrollText, Search, Trash2 } from "lucide-react";
-import { Switch } from "@/components/host-controls";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover } from "@/components/ui/popover";
+import { Switch } from "@/components/HostControls";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Popover } from "@/components/ui/Popover";
 import { readPrompt, type Prompt } from "@/lib/api";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 
 export function PromptsPage() {
   const snapshot = useAppStore((state) => state.snapshot);
@@ -29,7 +30,12 @@ export function PromptsPage() {
   return (
     <>
       <section className="mb-6 flex items-center justify-end">
-        <Button ref={dialogTrigger} type="button" variant="primary" onClick={() => setEditing(null)}>
+        <Button
+          ref={dialogTrigger}
+          type="button"
+          variant="primary"
+          onClick={() => setEditing(null)}
+        >
           <Plus />
           新建提示词
         </Button>
@@ -37,14 +43,24 @@ export function PromptsPage() {
       <div className="flex min-h-14 items-center justify-between rounded-t-lg border-2 border-b-0 border-border bg-card px-3 py-2">
         <label className="flex h-[38px] w-[min(380px,68%)] items-center gap-2 rounded-md border-2 border-input bg-muted px-3 text-muted-foreground focus-within:border-ring focus-within:shadow-focus [&_svg]:size-4">
           <Search />
-          <Input size="bare" aria-label="搜索提示词" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索名称或内容" />
+          <Input
+            size="bare"
+            aria-label="搜索提示词"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="搜索名称或内容"
+          />
         </label>
-        <span className="pr-1.5 text-[11px] text-muted-foreground tabular-nums">{prompts.length} 个条目</span>
+        <span className="pr-1.5 text-[11px] text-muted-foreground tabular-nums">
+          {prompts.length} 个条目
+        </span>
       </div>
       <section className="min-w-0 overflow-x-auto rounded-b-lg border-2 border-border bg-card">
         {prompts.length === 0 ? (
           <div className="grid min-h-[280px] place-items-center p-8 text-center text-muted-foreground">
-            <span className="grid size-[42px] place-items-center rounded-md border border-border bg-primary [&_svg]:size-5"><ScrollText /></span>
+            <span className="grid size-[42px] place-items-center rounded-md border border-border bg-primary [&_svg]:size-5">
+              <ScrollText />
+            </span>
             <strong className="mt-2.5 text-sm text-foreground">还没有提示词</strong>
             <p className="mt-1 text-[11px]">新建后保存在 Chu，再分发到各个宿主。</p>
           </div>
@@ -53,16 +69,29 @@ export function PromptsPage() {
             <div className="grid min-h-[38px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-border bg-muted px-3.5 text-[9px] font-bold text-muted-foreground uppercase">
               <span className="col-span-2">提示词</span>
               <div className="grid grid-flow-col justify-end gap-2 text-center auto-cols-[minmax(72px,max-content)]">
-                {hosts.map((host) => <span key={host.id}>{host.name}</span>)}
+                {hosts.map((host) => (
+                  <span key={host.id}>{host.name}</span>
+                ))}
               </div>
               <span />
             </div>
             {prompts.map((item) => (
-              <div key={item.id} className="grid min-h-[84px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-muted-foreground bg-card px-3.5 py-3 last:border-b-0 hover:bg-primary-muted">
-                <span className="grid size-9 place-items-center rounded-md border border-border bg-primary [&_svg]:size-4"><ScrollText /></span>
-                <button type="button" className="grid min-w-0 cursor-pointer gap-1 border-0 bg-transparent p-0 text-left" onClick={() => setEditing(item)}>
+              <div
+                key={item.id}
+                className="grid min-h-[84px] grid-cols-[40px_minmax(180px,1fr)_max-content_auto] items-center gap-3 border-b border-muted-foreground bg-card px-3.5 py-3 last:border-b-0 hover:bg-primary-muted"
+              >
+                <span className="grid size-9 place-items-center rounded-md border border-border bg-primary [&_svg]:size-4">
+                  <ScrollText />
+                </span>
+                <button
+                  type="button"
+                  className="grid min-w-0 cursor-pointer gap-1 border-0 bg-transparent p-0 text-left"
+                  onClick={() => setEditing(item)}
+                >
                   <strong className="truncate text-[13px]">{item.name}</strong>
-                  <span className="truncate text-[11px] text-muted-foreground">{item.preview || "空提示词"}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">
+                    {item.preview || "空提示词"}
+                  </span>
                   <span className="truncate text-[9px] text-neutral-400">{item.source}</span>
                 </button>
                 <span className="grid grid-flow-col items-center justify-end gap-2 auto-cols-[minmax(72px,max-content)]">
@@ -74,7 +103,11 @@ export function PromptsPage() {
                         label={`${item.enabledOn[host.id] ? "撤下" : "分发到"} ${host.name}`}
                         onChange={(enabled) => void togglePrompt(item.id, host.id, enabled)}
                       />
-                      {item.modeByHost[host.id] === "copy" ? <Badge tone="neutral" size="sm">copy</Badge> : null}
+                      {item.modeByHost[host.id] === "copy" ? (
+                        <Badge tone="neutral" size="sm">
+                          copy
+                        </Badge>
+                      ) : null}
                     </span>
                   ))}
                 </span>
@@ -90,12 +123,37 @@ export function PromptsPage() {
                 >
                   <Trash2 />
                 </button>
-                <Popover open={pendingDelete === item.id} anchor={{ current: pendingDelete ? deleteAnchors.current.get(pendingDelete) ?? null : null }} onClose={() => setPendingDelete(undefined)}>
+                <Popover
+                  open={pendingDelete === item.id}
+                  anchor={{
+                    current: pendingDelete
+                      ? (deleteAnchors.current.get(pendingDelete) ?? null)
+                      : null,
+                  }}
+                  onClose={() => setPendingDelete(undefined)}
+                >
                   <strong className="block">删除 {item.name}？</strong>
-                  <p className="my-1.5 block text-xs text-muted-foreground">已分发的宿主会恢复备份。</p>
+                  <p className="my-1.5 block text-xs text-muted-foreground">
+                    已分发的宿主会恢复备份。
+                  </p>
                   <span className="flex justify-end gap-2">
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setPendingDelete(undefined)}>取消</Button>
-                    <Button type="button" variant="danger" size="sm" disabled={busy === `delete:${item.id}`} onClick={() => void deletePrompt(item.id)}>删除</Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setPendingDelete(undefined)}
+                    >
+                      取消
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      disabled={busy === `delete:${item.id}`}
+                      onClick={() => void deletePrompt(item.id)}
+                    >
+                      删除
+                    </Button>
                   </span>
                 </Popover>
               </div>
@@ -110,7 +168,9 @@ export function PromptsPage() {
           onClose={() => setEditing(undefined)}
           returnFocus={dialogTrigger.current}
           onCreate={createPrompt}
-          onUpdate={(item, name, content) => useAppStore.getState().updatePrompt(item, name, content)}
+          onUpdate={(item, name, content) =>
+            useAppStore.getState().updatePrompt(item, name, content)
+          }
         />
       ) : null}
     </>
@@ -132,7 +192,6 @@ function PromptDialog({
   onCreate: (name: string, content: string) => Promise<boolean>;
   onUpdate: (item: Prompt, name: string, content: string) => Promise<boolean>;
 }) {
-  const dialogRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState(prompt?.name ?? "");
   const [content, setContent] = useState("");
 
@@ -142,36 +201,56 @@ function PromptDialog({
   }, [prompt]);
 
   return (
-    <div className="fixed inset-0 z-90 grid place-items-center bg-foreground/35 p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <Dialog
+      className="w-[min(640px,100%)] backdrop:bg-foreground/35"
+      aria-labelledby="prompt-dialog-title"
+      onClose={onClose}
+      returnFocus={returnFocus}
+    >
       <form
-        ref={dialogRef}
-        className="grid w-[min(640px,100%)] gap-4 rounded-lg border-2 border-border bg-card p-5 shadow-neo-lg"
+        className="grid gap-4 p-5"
         onSubmit={async (event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           const nextName = String(data.get("name") ?? name);
           const nextContent = String(data.get("content") ?? content);
-          const ok = prompt ? await onUpdate(prompt, nextName, nextContent) : await onCreate(nextName, nextContent);
+          const ok = prompt
+            ? await onUpdate(prompt, nextName, nextContent)
+            : await onCreate(nextName, nextContent);
           if (ok) {
-            returnFocus?.focus();
             onClose();
           }
         }}
       >
-        <strong>{prompt ? "编辑提示词" : "新建提示词"}</strong>
+        <strong id="prompt-dialog-title">{prompt ? "编辑提示词" : "新建提示词"}</strong>
         <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           名称
-          <Input name="name" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input
+            name="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
         </label>
         <label className="grid gap-1.5 text-[11px] font-bold text-muted-foreground">
           内容
-          <textarea name="content" rows={27} className="min-h-[180px] rounded-md border-2 border-input px-3 py-2 text-xs outline-none focus:border-ring" value={content} onChange={(event) => setContent(event.target.value)} />
+          <textarea
+            name="content"
+            rows={27}
+            className="min-h-[180px] rounded-md border-2 border-input px-3 py-2 text-xs outline-none focus:border-ring"
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+          />
         </label>
         <span className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>取消</Button>
-          <Button type="submit" variant="primary" disabled={busy}>{prompt ? "保存" : "创建"}</Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            取消
+          </Button>
+          <Button type="submit" variant="primary" disabled={busy}>
+            {prompt ? "保存" : "创建"}
+          </Button>
         </span>
       </form>
-    </div>
+    </Dialog>
   );
 }

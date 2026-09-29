@@ -1,6 +1,6 @@
 import { tv } from "tailwind-variants";
 import type { Host } from "@/lib/api";
-import { HostIcon } from "@/components/host-icons";
+import { HostIcon } from "@/components/HostIcons";
 
 const hostMark = tv({
   base: "grid shrink-0 place-items-center overflow-hidden rounded-md border border-border",
@@ -48,10 +48,5 @@ export function Switch({
 }
 
 export function StatusDot({ ready }: { ready: boolean }) {
-  return (
-    <span
-      className={statusDot({ ready })}
-      aria-hidden="true"
-    />
-  );
+  return <span className={statusDot({ ready })} aria-hidden="true" />;
 }

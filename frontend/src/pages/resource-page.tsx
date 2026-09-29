@@ -1,12 +1,12 @@
 import { useDeferredValue, useRef, useState } from "react";
 import { Plus, RefreshCw, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AddResourceDialog } from "@/components/add-resource-dialog";
-import { ResourceList } from "@/components/resource-browser";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { AddResourceDialog } from "@/components/AddResourceDialog";
+import { ResourceList } from "@/components/ResourceBrowser";
 import type { MCP, Skill } from "@/lib/api";
 import { resourcesFor, type ResourceKind } from "@/lib/resources";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 
 const pageCopy: Record<ResourceKind, { action: string }> = {
   skills: { action: "安装 Skill" },
@@ -32,9 +32,10 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const deferredSearch = useDeferredValue(search);
   const resources = resourcesFor(snapshot, kind);
   const query = deferredSearch.trim().toLowerCase();
-  const filtered = (query
-    ? resources.filter((item) => `${item.name} ${item.description}`.toLowerCase().includes(query))
-    : resources
+  const filtered = (
+    query
+      ? resources.filter((item) => `${item.name} ${item.description}`.toLowerCase().includes(query))
+      : resources
   ).toSorted((left, right) => {
     if (kind !== "skills") return left.name.localeCompare(right.name);
     const rank = (item: (typeof resources)[number]) => {
@@ -76,14 +77,17 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
       <div className="flex min-h-14 items-center justify-between rounded-t-lg border-2 border-b-0 border-border bg-card px-3 py-2">
         <label className="flex h-[38px] w-[min(380px,68%)] items-center gap-2 rounded-md border-2 border-input bg-muted px-3 text-muted-foreground focus-within:border-ring focus-within:shadow-focus [&_svg]:size-4">
           <Search />
-          <Input size="bare"
+          <Input
+            size="bare"
             aria-label="搜索资源"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="搜索名称或描述"
           />
         </label>
-        <span className="pr-1.5 text-[11px] text-muted-foreground tabular-nums">{filtered.length} 个条目</span>
+        <span className="pr-1.5 text-[11px] text-muted-foreground tabular-nums">
+          {filtered.length} 个条目
+        </span>
       </div>
       <section>
         <div className="min-w-0 overflow-x-auto rounded-b-lg border-2 border-border bg-card">

@@ -126,6 +126,38 @@ export namespace main {
 	        this.enabledOn = source["enabledOn"];
 	    }
 	}
+	export class ProjectDeploymentView {
+	    enabled: boolean;
+	    status: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProjectDeploymentView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.status = source["status"];
+	    }
+	}
+	export class ReferenceView {
+	    id: string;
+	    name: string;
+	    source: string;
+	    preview: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReferenceView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.source = source["source"];
+	        this.preview = source["preview"];
+	    }
+	}
 	export class PromptView {
 	    id: string;
 	    name: string;
@@ -148,24 +180,137 @@ export namespace main {
 	        this.modeByHost = source["modeByHost"];
 	    }
 	}
-	export class ReferenceView {
+	export class SkillView {
 	    id: string;
 	    name: string;
+	    description: string;
+	    tracked: boolean;
+	    repository: string;
 	    source: string;
-	    preview: string;
+	    managed: boolean;
+	    enabledOn: Record<string, boolean>;
+	    modeByHost: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
-	        return new ReferenceView(source);
+	        return new SkillView(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.tracked = source["tracked"];
+	        this.repository = source["repository"];
 	        this.source = source["source"];
-	        this.preview = source["preview"];
+	        this.managed = source["managed"];
+	        this.enabledOn = source["enabledOn"];
+	        this.modeByHost = source["modeByHost"];
 	    }
 	}
+	export class ProjectView {
+	    id: string;
+	    name: string;
+	    path: string;
+	    available: boolean;
+	    createdAt: string;
+	    deployments: Record<string, any>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProjectView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.available = source["available"];
+	        this.createdAt = source["createdAt"];
+	        this.deployments = source["deployments"];
+	    }
+	}
+	export class Snapshot {
+	    root: string;
+	    hosts: HostView[];
+	    projects: ProjectView[];
+	    skills: SkillView[];
+	    mcps: MCPView[];
+	    agents: AgentView[];
+	    prompts: PromptView[];
+	    references: ReferenceView[];
+	    lastScan: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Snapshot(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.root = source["root"];
+	        this.hosts = this.convertValues(source["hosts"], HostView);
+	        this.projects = this.convertValues(source["projects"], ProjectView);
+	        this.skills = this.convertValues(source["skills"], SkillView);
+	        this.mcps = this.convertValues(source["mcps"], MCPView);
+	        this.agents = this.convertValues(source["agents"], AgentView);
+	        this.prompts = this.convertValues(source["prompts"], PromptView);
+	        this.references = this.convertValues(source["references"], ReferenceView);
+	        this.lastScan = source["lastScan"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ProjectRemovalResult {
+	    snapshot: Snapshot;
+	    retained: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ProjectRemovalResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.snapshot = this.convertValues(source["snapshot"], Snapshot);
+	        this.retained = source["retained"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	
+	
 	export class SkillCandidate {
 	    name: string;
 	    description: string;
@@ -200,78 +345,7 @@ export namespace main {
 	        this.status = source["status"];
 	    }
 	}
-	export class SkillView {
-	    id: string;
-	    name: string;
-	    description: string;
-	    tracked: boolean;
-	    repository: string;
-	    source: string;
-	    managed: boolean;
-	    enabledOn: Record<string, boolean>;
-	    modeByHost: Record<string, string>;
 	
-	    static createFrom(source: any = {}) {
-	        return new SkillView(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.description = source["description"];
-	        this.tracked = source["tracked"];
-	        this.repository = source["repository"];
-	        this.source = source["source"];
-	        this.managed = source["managed"];
-	        this.enabledOn = source["enabledOn"];
-	        this.modeByHost = source["modeByHost"];
-	    }
-	}
-	export class Snapshot {
-	    root: string;
-	    hosts: HostView[];
-	    skills: SkillView[];
-	    mcps: MCPView[];
-	    agents: AgentView[];
-	    prompts: PromptView[];
-	    references: ReferenceView[];
-	    lastScan: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new Snapshot(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.root = source["root"];
-	        this.hosts = this.convertValues(source["hosts"], HostView);
-	        this.skills = this.convertValues(source["skills"], SkillView);
-	        this.mcps = this.convertValues(source["mcps"], MCPView);
-	        this.agents = this.convertValues(source["agents"], AgentView);
-	        this.prompts = this.convertValues(source["prompts"], PromptView);
-	        this.references = this.convertValues(source["references"], ReferenceView);
-	        this.lastScan = source["lastScan"];
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
 
 }
 

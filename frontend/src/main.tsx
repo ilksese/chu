@@ -7,7 +7,8 @@ import { startDebugBridge } from "@/lib/debug-bridge";
 function log(level: "info" | "error", message: string) {
   const line = `[chu] ${message}`;
   console[level](line);
-  const runtime = (window as Window & { runtime?: Record<string, (value: string) => void> }).runtime;
+  const runtime = (window as Window & { runtime?: Record<string, (value: string) => void> })
+    .runtime;
   runtime?.[level === "error" ? "LogError" : "LogInfo"]?.(line);
 }
 
@@ -32,7 +33,14 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error?: str
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <pre style={{ margin: 24, whiteSpace: "pre-wrap", color: "var(--pk-black-outline)", fontSize: 12 }}>
+      <pre
+        style={{
+          margin: 24,
+          whiteSpace: "pre-wrap",
+          color: "var(--pk-black-outline)",
+          fontSize: 12,
+        }}
+      >
         {this.state.error}
       </pre>
     );
@@ -62,7 +70,10 @@ async function attachWails() {
 }
 
 await attachWails().catch((error) => log("error", `attach wails ${String(error)}`));
-log("info", `boot href=${location.href} go=${Boolean(window.go?.main?.App)} debug=${import.meta.env.VITE_CHU_DEBUG_WS || "off"}`);
+log(
+  "info",
+  `boot href=${location.href} go=${Boolean(window.go?.main?.App)} debug=${import.meta.env.VITE_CHU_DEBUG_WS || "off"}`,
+);
 startDebugBridge();
 
 root.render(
@@ -72,5 +83,5 @@ root.render(
         <App />
       </BrowserRouter>
     </RootErrorBoundary>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

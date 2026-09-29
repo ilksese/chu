@@ -24,6 +24,12 @@ import {
   toggleMCP,
   toggleSkill,
   updateHostPaths,
+  addProject,
+  deleteProject as deleteProjectAPI,
+  relocateProject,
+  renameProject,
+  resetProjectSkill,
+  toggleProjectSkill,
   type AgentInput,
   type Host,
   type MCPInput,
@@ -43,6 +49,7 @@ const emptySnapshot: Snapshot = {
   agents: [],
   prompts: [],
   references: [],
+  projects: [],
   lastScan: "",
 };
 
@@ -83,11 +90,22 @@ type AppStore = {
   createReference: (name: string, content: string) => Promise<boolean>;
   updateReference: (item: Reference, name: string, content: string) => Promise<boolean>;
   deleteReference: (id: string) => Promise<boolean>;
+  addProject: () => Promise<boolean>;
+  renameProject: (projectID: string, name: string) => Promise<boolean>;
+  relocateProject: (projectID: string) => Promise<boolean>;
+  toggleProjectSkill: (
+    projectID: string,
+    skillID: string,
+    hostID: string,
+    enabled: boolean,
+  ) => Promise<boolean>;
+  resetProjectSkill: (projectID: string, skillID: string, hostID: string) => Promise<boolean>;
+  deleteProject: (projectID: string, cleanup: boolean) => Promise<boolean>;
 };
 
 let previewSerial = 0;
 
-export const useAppStore = create<AppStore>((set) => {
+export const useAppStore = create<AppStore>((set, get) => {
   async function run(operation: string, action: () => Promise<Snapshot>, success: string) {
     set({ busy: operation, notice: undefined });
     try {
@@ -175,7 +193,12 @@ export const useAppStore = create<AppStore>((set) => {
       set({ busy: "updates:skills", notice: undefined });
       try {
         const updates = (await checkSkillUpdates()) ?? [];
-        set({ skillUpdates: updates, notice: { message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill" } });
+        set({
+          skillUpdates: updates,
+          notice: {
+            message: updates.length ? `发现 ${updates.length} 个变化` : "没有可更新的 skill",
+          },
+        });
         return updates;
       } catch (error) {
         set({ notice: { message: String(error), error: true } });
@@ -186,27 +209,106 @@ export const useAppStore = create<AppStore>((set) => {
     },
     updateSkill: async (skillID) => {
       const ok = await run(`update:${skillID}`, () => updateSkill(skillID), "Skill 已更新");
-      if (ok) set((state) => ({ skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID) }));
+      if (ok)
+        set((state) => ({
+          skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID),
+        }));
       return ok;
     },
     deleteSkill: (skillID) => run(`delete:${skillID}`, () => deleteSkill(skillID), "Skill 已删除"),
     removeSkill: async (skillID) => {
       const ok = await run(`remove:${skillID}`, () => removeSkill(skillID), "Skill 已移除");
-      if (ok) set((state) => ({ skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID) }));
+      if (ok)
+        set((state) => ({
+          skillUpdates: state.skillUpdates.filter((item) => item.id !== skillID),
+        }));
       return ok;
     },
     addMCP: (input) => run("add:mcps", () => addMCPAPI(input), "资源已保存到 Chu"),
     addAgent: (input) => run("add:agents", () => addAgentAPI(input), "资源已保存到 Chu"),
     restoreHost: (host) =>
       run(`restore:${host.id}`, () => restoreBackup(host.id), `${host.name} 已恢复上次备份`),
-    createPrompt: (name, content) => run("add:prompts", () => createPrompt(name, content), "提示词已保存"),
-    updatePrompt: (item, name, content) => run(`update:${item.id}`, () => updatePrompt(item.id, name, content), "提示词已更新"),
+    createPrompt: (name, content) =>
+      run("add:prompts", () => createPrompt(name, content), "提示词已保存"),
+    updatePrompt: (item, name, content) =>
+      run(`update:${item.id}`, () => updatePrompt(item.id, name, content), "提示词已更新"),
     deletePrompt: (id) => run(`delete:${id}`, () => deletePrompt(id), "提示词已删除"),
     togglePrompt: (id, hostID, enabled) =>
-      run(`prompts:${id}:${hostID}`, () => togglePrompt(id, hostID, enabled), enabled ? "提示词已分发" : "已恢复宿主原文件"),
-    createReference: (name, content) => run("add:references", () => createReference(name, content), "Reference 已保存"),
-    updateReference: (item, name, content) => run(`update:reference:${item.id}`, () => updateReference(item.id, name, content), "Reference 已更新"),
-    deleteReference: (id) => run(`delete:reference:${id}`, () => deleteReference(id), "Reference 已删除"),
+      run(
+        `prompts:${id}:${hostID}`,
+        () => togglePrompt(id, hostID, enabled),
+        enabled ? "提示词已分发" : "已恢复宿主原文件",
+      ),
+    createReference: (name, content) =>
+      run("add:references", () => createReference(name, content), "Reference 已保存"),
+    updateReference: (item, name, content) =>
+      run(
+        `update:reference:${item.id}`,
+        () => updateReference(item.id, name, content),
+        "Reference 已更新",
+      ),
+    deleteReference: (id) =>
+      run(`delete:reference:${id}`, () => deleteReference(id), "Reference 已删除"),
+    addProject: async () => {
+      const count = get().snapshot.projects.length;
+      set({ busy: "add:project", notice: undefined });
+      try {
+        const snapshot = await addProject();
+        const added = snapshot.projects.length > count;
+        set({ snapshot, notice: added ? { message: "项目已关联" } : undefined });
+        return added;
+      } catch (error) {
+        set({ notice: { message: String(error), error: true } });
+        return false;
+      } finally {
+        set({ busy: "" });
+      }
+    },
+    renameProject: (projectID, name) =>
+      run(`rename:project:${projectID}`, () => renameProject(projectID, name), "项目名称已更新"),
+    relocateProject: async (projectID) => {
+      const path = get().snapshot.projects.find((project) => project.id === projectID)?.path;
+      set({ busy: `relocate:project:${projectID}`, notice: undefined });
+      try {
+        const snapshot = await relocateProject(projectID);
+        const moved = snapshot.projects.find((project) => project.id === projectID)?.path !== path;
+        set({ snapshot, notice: moved ? { message: "项目目录已重新关联" } : undefined });
+        return moved;
+      } catch (error) {
+        set({ notice: { message: String(error), error: true } });
+        return false;
+      } finally {
+        set({ busy: "" });
+      }
+    },
+    toggleProjectSkill: (projectID, skillID, hostID, enabled) =>
+      run(
+        `project:${projectID}:${skillID}:${hostID}`,
+        () => toggleProjectSkill(projectID, skillID, hostID, enabled),
+        enabled ? "Skill 已复制到项目" : "项目 Skill 已关闭",
+      ),
+    resetProjectSkill: (projectID, skillID, hostID) =>
+      run(
+        `reset:project:${projectID}:${skillID}:${hostID}`,
+        () => resetProjectSkill(projectID, skillID, hostID),
+        "项目 Skill 已重置为中央版本",
+      ),
+    deleteProject: async (projectID, cleanup) => {
+      set({ busy: `delete:project:${projectID}`, notice: undefined });
+      try {
+        const result = await deleteProjectAPI(projectID, cleanup);
+        const retained = result.retained.length
+          ? `，已保留修改副本：${result.retained.join("，")}`
+          : "";
+        set({ snapshot: result.snapshot, notice: { message: `项目关联已移除${retained}` } });
+        return true;
+      } catch (error) {
+        set({ notice: { message: String(error), error: true } });
+        return false;
+      } finally {
+        set({ busy: "" });
+      }
+    },
     updateHost: (host, paths) =>
       run(
         `paths:${host.id}`,

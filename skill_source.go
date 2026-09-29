@@ -211,6 +211,9 @@ func (a *App) UpdateSkill(skillID string) (Snapshot, error) {
 		dep.LastHash = hashPath(dep.Target)
 		stored.Deployments[hostID] = dep
 	}
+	if err := a.syncProjectSkillCopiesLocked(stored); err != nil {
+		return a.snapshotLocked(), err
+	}
 	if err := a.saveStateLocked(); err != nil {
 		return a.snapshotLocked(), err
 	}
@@ -237,6 +240,9 @@ func (a *App) DeleteSkill(skillID string) (Snapshot, error) {
 		return a.snapshotLocked(), errors.New("只能删除 Chu 管理的 skill")
 	}
 	stored := a.state.Skills[index]
+	if projects := a.projectsUsingSkillLocked(stored.ID); len(projects) > 0 {
+		return a.snapshotLocked(), fmt.Errorf("该 skill 仍被项目使用: %s", strings.Join(projects, "、"))
+	}
 	for _, dep := range stored.Deployments {
 		if dep.Mode == "copy" && hashPath(dep.Target) != dep.LastHash {
 			return a.snapshotLocked(), errors.New("目标 copy 已被修改，已保护用户改动")

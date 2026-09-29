@@ -30,11 +30,12 @@ type App struct {
 }
 
 type appState struct {
-	Version int                 `json:"version"`
-	Paths   map[string]hostPath `json:"paths,omitempty"`
-	Skills  []storedSkill       `json:"skills"`
-	MCPs    []storedMCP         `json:"mcps"`
-	Agents  []storedAgent       `json:"agents"`
+	Version  int                 `json:"version"`
+	Paths    map[string]hostPath `json:"paths,omitempty"`
+	Skills   []storedSkill       `json:"skills"`
+	MCPs     []storedMCP         `json:"mcps"`
+	Agents   []storedAgent       `json:"agents"`
+	Projects []storedProject     `json:"projects,omitempty"`
 }
 
 type hostPath struct {
@@ -147,6 +148,7 @@ type ReferenceView struct {
 type Snapshot struct {
 	Root       string          `json:"root"`
 	Hosts      []HostView      `json:"hosts"`
+	Projects   []ProjectView   `json:"projects"`
 	Skills     []SkillView     `json:"skills"`
 	MCPs       []MCPView       `json:"mcps"`
 	Agents     []AgentView     `json:"agents"`
@@ -606,7 +608,7 @@ func (a *App) snapshotLocked() Snapshot {
 		agents = append(agents, AgentView{ID: item.ID, Name: item.Name, Description: item.Description, Model: item.Model, Source: item.Source, Managed: true, EnabledOn: enabled})
 	}
 	prompts := a.promptViewsLocked(lock, specs)
-	return Snapshot{Root: a.root, Hosts: hosts, Skills: skills, MCPs: mcps, Agents: agents, Prompts: prompts, References: a.referenceViewsLocked(), LastScan: time.Now().Format(time.RFC3339)}
+	return Snapshot{Root: a.root, Hosts: hosts, Projects: a.projectViewsLocked(hosts), Skills: skills, MCPs: mcps, Agents: agents, Prompts: prompts, References: a.referenceViewsLocked(), LastScan: time.Now().Format(time.RFC3339)}
 }
 
 func (a *App) hostView(spec hostSpec) HostView {

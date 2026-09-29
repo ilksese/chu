@@ -6,11 +6,15 @@ export function AddAgent(arg1:main.AgentInput):Promise<main.Snapshot>;
 
 export function AddMCP(arg1:main.MCPInput):Promise<main.Snapshot>;
 
+export function AddProject():Promise<main.Snapshot>;
+
 export function CheckSkillUpdates():Promise<Array<main.SkillUpdate>>;
 
 export function CreatePrompt(arg1:string,arg2:string):Promise<main.Snapshot>;
 
 export function CreateReference(arg1:string,arg2:string):Promise<main.Snapshot>;
+
+export function DeleteProject(arg1:string,arg2:boolean):Promise<main.ProjectRemovalResult>;
 
 export function DeletePrompt(arg1:string):Promise<main.Snapshot>;
 
@@ -32,7 +36,13 @@ export function ReadReference(arg1:string):Promise<string>;
 
 export function Refresh():Promise<main.Snapshot>;
 
+export function RelocateProject(arg1:string):Promise<main.Snapshot>;
+
 export function RemoveSkill(arg1:string):Promise<main.Snapshot>;
+
+export function RenameProject(arg1:string,arg2:string):Promise<main.Snapshot>;
+
+export function ResetProjectSkill(arg1:string,arg2:string,arg3:string):Promise<main.Snapshot>;
 
 export function RestoreBackup(arg1:string):Promise<main.Snapshot>;
 
@@ -41,6 +51,8 @@ export function TestMCP(arg1:string):Promise<string>;
 export function ToggleAgent(arg1:string,arg2:string,arg3:boolean):Promise<main.Snapshot>;
 
 export function ToggleMCP(arg1:string,arg2:string,arg3:boolean):Promise<main.Snapshot>;
+
+export function ToggleProjectSkill(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<main.Snapshot>;
 
 export function TogglePrompt(arg1:string,arg2:string,arg3:boolean):Promise<main.Snapshot>;
 

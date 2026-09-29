@@ -13,11 +13,12 @@
 - `main.go` 是 Wails 入口并嵌入 `frontend/dist`；`app.go` 集中负责状态、宿主发现和配置写入，公开的 `App` 方法是前后端绑定边界。
 - `frontend/src/lib/api.ts` 直接调用 `window.go.main.App`；普通 Vite 浏览器中不存在该对象，因此会自动使用内存模拟数据，不能据此验证 Go 后端或文件写入。
 - `frontend/src/main.tsx` 只挂载 `BrowserRouter`；`frontend/src/App.tsx` 负责初始化和路由，页面在 `frontend/src/pages`，跨页面组件在 `frontend/src/components`，路径与导航配置在 `frontend/src/app/navigation.ts`。
-- `frontend/src/stores/app-store.ts` 用 Zustand 管理 Snapshot、全局操作状态、通知和后端动作；搜索、选中项、弹窗和表单草稿等页面瞬时状态留在所属页面。
+- `frontend/src/stores/appStore.ts` 用 Zustand 管理 Snapshot、全局操作状态、通知和后端动作；搜索、选中项、弹窗和表单草稿等页面瞬时状态留在所属页面。
 - 真实后端以 `~/.chu/state.json` 为中央状态，并可能修改 OpenCode、Claude Code、Codex 的真实配置；写路径测试必须使用 `t.TempDir()`，不要让测试调用用户目录。
 
 ## 代码组织
 
+- 前端文件命名、目录职责与导入约定见 `references/code-conventions.md`，新增或重命名源码时必须遵循。
 - 手写源代码文件接近 400 行时应评估职责边界，原则上控制在 500 行以内。
 - 行数不是硬性拆分指标；只在页面、职责或复用边界清晰且有长期维护收益时拆分，禁止为满足行数机械拆文件。
 - 生成文件、依赖锁文件和确需维持级联顺序的集中样式文件不受上述行数目标约束。

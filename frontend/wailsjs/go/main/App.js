@@ -10,6 +10,10 @@ export function AddMCP(arg1) {
   return window['go']['main']['App']['AddMCP'](arg1);
 }
 
+export function AddProject() {
+  return window['go']['main']['App']['AddProject']();
+}
+
 export function CheckSkillUpdates() {
   return window['go']['main']['App']['CheckSkillUpdates']();
 }
@@ -20,6 +24,10 @@ export function CreatePrompt(arg1, arg2) {
 
 export function CreateReference(arg1, arg2) {
   return window['go']['main']['App']['CreateReference'](arg1, arg2);
+}
+
+export function DeleteProject(arg1, arg2) {
+  return window['go']['main']['App']['DeleteProject'](arg1, arg2);
 }
 
 export function DeletePrompt(arg1) {
@@ -62,8 +70,20 @@ export function Refresh() {
   return window['go']['main']['App']['Refresh']();
 }
 
+export function RelocateProject(arg1) {
+  return window['go']['main']['App']['RelocateProject'](arg1);
+}
+
 export function RemoveSkill(arg1) {
   return window['go']['main']['App']['RemoveSkill'](arg1);
+}
+
+export function RenameProject(arg1, arg2) {
+  return window['go']['main']['App']['RenameProject'](arg1, arg2);
+}
+
+export function ResetProjectSkill(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ResetProjectSkill'](arg1, arg2, arg3);
 }
 
 export function RestoreBackup(arg1) {
@@ -80,6 +100,10 @@ export function ToggleAgent(arg1, arg2, arg3) {
 
 export function ToggleMCP(arg1, arg2, arg3) {
   return window['go']['main']['App']['ToggleMCP'](arg1, arg2, arg3);
+}
+
+export function ToggleProjectSkill(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ToggleProjectSkill'](arg1, arg2, arg3, arg4);
 }
 
 export function TogglePrompt(arg1, arg2, arg3) {

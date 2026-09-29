@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound, RotateCcw } from "lucide-react";
-import { HostMark, StatusDot } from "@/components/host-controls";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { HostMark, StatusDot } from "@/components/HostControls";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import type { Host } from "@/lib/api";
-import { useAppStore } from "@/stores/app-store";
+import { useAppStore } from "@/stores/appStore";
 
 type HostPaths = Pick<Host, "configPath" | "skillPath" | "agentPath">;
 
@@ -52,7 +52,10 @@ export function SettingsPage() {
                 </header>
                 <div className="grid gap-2.5 py-4">
                   {(["configPath", "skillPath", "agentPath"] as const).map((key) => (
-                    <label key={key} className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3 text-[11px] font-semibold text-muted-foreground">
+                    <label
+                      key={key}
+                      className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3 text-[11px] font-semibold text-muted-foreground"
+                    >
                       {key === "configPath"
                         ? "配置文件"
                         : key === "skillPath"
@@ -96,8 +99,12 @@ export function SettingsPage() {
         </div>
         <aside className="sticky top-22 rounded-lg border-2 border-border bg-card p-[18px] shadow-neo-sm">
           <h2 className="m-0 text-[19px] font-extrabold">Chu 中央目录</h2>
-          <code className="mt-4 block truncate rounded border border-border bg-muted p-2.5 text-[10px]">{snapshot.root}</code>
-          <p className="text-xs leading-relaxed text-muted-foreground">Skill 本体、MCP 定义、自定义 Agent 和部署状态统一存放在这里。</p>
+          <code className="mt-4 block truncate rounded border border-border bg-muted p-2.5 text-[10px]">
+            {snapshot.root}
+          </code>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Skill 本体、MCP 定义、自定义 Agent 和部署状态统一存放在这里。
+          </p>
           <div className="mt-4 flex gap-2.5 rounded-md border border-border bg-warning-surface p-3 text-warning-foreground [&_svg]:size-4">
             <KeyRound />
             <span>
