@@ -284,7 +284,7 @@ func (a *App) projectViewsLocked(hosts []HostView) []ProjectView {
 					switch {
 					case dep.Mode == "conflict":
 						status = "conflict"
-					case !fileExists(dep.Target):
+					case !fileExists(filepath.Join(dep.Target, "SKILL.md")):
 						status = "missing"
 					case hashPath(dep.Target) != dep.LastHash:
 						status = "modified"

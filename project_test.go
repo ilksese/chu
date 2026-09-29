@@ -26,6 +26,19 @@ func TestProjectSkillLifecycleProtectsLocalChanges(t *testing.T) {
 	if !fileExists(filepath.Join(target, "SKILL.md")) {
 		t.Fatal("project skill was not copied")
 	}
+	if err := os.Remove(filepath.Join(target, "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+	views := app.projectViewsLocked([]HostView{{ID: "opencode"}})
+	if status := views[0].Deployments["review"]["opencode"].Status; status != "missing" {
+		t.Fatalf("status = %q, want missing", status)
+	}
+	if _, err := app.ResetProjectSkill(projectID, "review", "opencode"); err != nil {
+		t.Fatal(err)
+	}
+	if !fileExists(filepath.Join(target, "SKILL.md")) {
+		t.Fatal("reset did not restore missing skill files")
+	}
 	if err := os.WriteFile(filepath.Join(target, "note.txt"), []byte("local"), 0o600); err != nil {
 		t.Fatal(err)
 	}
