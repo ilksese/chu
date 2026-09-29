@@ -34,7 +34,7 @@ export const AnimatedList = memo(function AnimatedList({
         {items.slice(0, visible).map((item) => (
           <motion.div
             key={typeof item === "object" && item && "key" in item ? item.key : undefined}
-            layout
+            layout="position"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}

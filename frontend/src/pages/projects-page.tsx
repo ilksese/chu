@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Check,
   ChevronDown,
@@ -36,6 +37,7 @@ export function ProjectsPage() {
   const toggleProjectSkill = useAppStore((state) => state.toggleProjectSkill);
   const resetProjectSkill = useAppStore((state) => state.resetProjectSkill);
   const deleteProject = useAppStore((state) => state.deleteProject);
+  const reducedMotion = useReducedMotion();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<string>();
   const [name, setName] = useState("");
@@ -136,6 +138,7 @@ export function ProjectsPage() {
                       type="button"
                       className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left"
                       aria-expanded={open}
+                      aria-controls={`project-content-${project.id}`}
                       onClick={() => toggleExpanded(project.id)}
                     >
                       <span className="grid size-10 shrink-0 place-items-center rounded-md border-2 border-border bg-primary [&_svg]:size-[18px]">
@@ -185,126 +188,145 @@ export function ProjectsPage() {
                   </Button>
                 </div>
 
-                {open ? (
-                  <div className="border-t-2 border-border">
-                    {!project.available ? (
-                      <div className="flex items-center justify-between gap-4 bg-warning-surface px-4 py-3 text-xs text-warning-foreground">
-                        <span>
-                          找不到项目根目录。重新选择后会按原配置部署，冲突文件不会被覆盖。
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          disabled={busy === `relocate:project:${project.id}`}
-                          onClick={() => void relocateProject(project.id)}
-                        >
-                          <FolderOpen />
-                          重新定位
-                        </Button>
-                      </div>
-                    ) : null}
-                    {skills.length === 0 ? (
-                      <div className="grid min-h-36 place-items-center p-6 text-center text-xs text-muted-foreground">
-                        <span>
-                          没有 Chu 管理的 Skill。
-                          <Link
-                            className="font-bold text-foreground underline underline-offset-4"
-                            to="/skills"
-                          >
-                            前往技能页安装
-                          </Link>
-                        </span>
-                      </div>
-                    ) : hosts.length === 0 ? (
-                      <div className="grid min-h-36 place-items-center p-6 text-center text-xs text-muted-foreground">
-                        未检测到可配置的 Agent 宿主。
-                      </div>
-                    ) : (
-                      <div className="min-w-[680px] overflow-x-auto">
-                        <div
-                          className="grid min-h-11 items-center gap-3 border-b border-border bg-muted px-4 text-[10px] font-bold text-muted-foreground"
-                          style={columns(hosts.length)}
-                        >
-                          <span>Skill</span>
-                          {hosts.map((host) => (
-                            <span
-                              key={host.id}
-                              className="flex items-center justify-center gap-1.5"
+                <AnimatePresence initial={false}>
+                  {open ? (
+                    <motion.div
+                      id={`project-content-${project.id}`}
+                      className="overflow-hidden"
+                      initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={
+                        reducedMotion
+                          ? { duration: 0 }
+                          : { duration: 0.18, ease: [0.16, 1, 0.3, 1] }
+                      }
+                    >
+                      <div className="border-t-2 border-border">
+                        {!project.available ? (
+                          <div className="flex items-center justify-between gap-4 bg-warning-surface px-4 py-3 text-xs text-warning-foreground">
+                            <span>
+                              找不到项目根目录。重新选择后会按原配置部署，冲突文件不会被覆盖。
+                            </span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              disabled={busy === `relocate:project:${project.id}`}
+                              onClick={() => void relocateProject(project.id)}
                             >
-                              <HostMark host={host} compact />
-                              {host.name}
+                              <FolderOpen />
+                              重新定位
+                            </Button>
+                          </div>
+                        ) : null}
+                        {skills.length === 0 ? (
+                          <div className="grid min-h-36 place-items-center p-6 text-center text-xs text-muted-foreground">
+                            <span>
+                              没有 Chu 管理的 Skill。
+                              <Link
+                                className="font-bold text-foreground underline underline-offset-4"
+                                to="/skills"
+                              >
+                                前往技能页安装
+                              </Link>
                             </span>
-                          ))}
-                        </div>
-                        {skills.map((skill) => (
-                          <div
-                            key={skill.id}
-                            className="grid min-h-[76px] items-center gap-3 border-b border-muted-foreground px-4 py-2.5 last:border-b-0 hover:bg-primary-muted"
-                            style={columns(hosts.length)}
-                          >
-                            <span className="grid min-w-0 gap-1">
-                              <strong className="truncate text-xs">{skill.name}</strong>
-                              <span className="truncate text-[10px] text-muted-foreground">
-                                {skill.description || "无描述"}
-                              </span>
-                            </span>
-                            {hosts.map((host) => {
-                              const deployment = project.deployments[skill.id]?.[host.id];
-                              const operation = `project:${project.id}:${skill.id}:${host.id}`;
-                              return (
+                          </div>
+                        ) : hosts.length === 0 ? (
+                          <div className="grid min-h-36 place-items-center p-6 text-center text-xs text-muted-foreground">
+                            未检测到可配置的 Agent 宿主。
+                          </div>
+                        ) : (
+                          <div className="min-w-[680px] overflow-x-auto">
+                            <div
+                              className="grid min-h-11 items-center gap-3 border-b border-border bg-muted px-4 text-[10px] font-bold text-muted-foreground"
+                              style={columns(hosts.length)}
+                            >
+                              <span>Skill</span>
+                              {hosts.map((host) => (
                                 <span
                                   key={host.id}
-                                  className="grid min-h-12 place-items-center content-center gap-0.5"
+                                  className="flex items-center justify-center gap-1.5"
                                 >
-                                  <Switch
-                                    checked={Boolean(deployment?.enabled)}
-                                    disabled={!project.available || busy === operation}
-                                    label={`${deployment?.enabled ? "关闭" : "启用"} ${project.name} 的 ${skill.name}（${host.name}）`}
-                                    onChange={(enabled) =>
-                                      void toggleProjectSkill(
-                                        project.id,
-                                        skill.id,
-                                        host.id,
-                                        enabled,
-                                      )
-                                    }
-                                  />
-                                  {deployment ? (
-                                    <span className="flex h-[18px] items-center gap-1">
-                                      <StatusBadge deployment={deployment} />
-                                      {deployment.enabled &&
-                                      (deployment.status === "modified" ||
-                                        deployment.status === "missing") ? (
-                                        <button
-                                          type="button"
-                                          className="grid size-[18px] cursor-pointer place-items-center rounded border border-border bg-card text-muted-foreground hover:bg-primary disabled:cursor-wait disabled:opacity-50 [&_svg]:size-2.5"
-                                          aria-label={`将 ${skill.name} 重置为中央版本`}
-                                          title="重置为中央版本"
-                                          disabled={
-                                            busy ===
-                                            `reset:project:${project.id}:${skill.id}:${host.id}`
-                                          }
-                                          onClick={() =>
-                                            void resetProjectSkill(project.id, skill.id, host.id)
-                                          }
-                                        >
-                                          <RotateCcw />
-                                        </button>
-                                      ) : null}
-                                    </span>
-                                  ) : (
-                                    <span className="h-[18px]" />
-                                  )}
+                                  <HostMark host={host} compact />
+                                  {host.name}
                                 </span>
-                              );
-                            })}
+                              ))}
+                            </div>
+                            {skills.map((skill) => (
+                              <div
+                                key={skill.id}
+                                className="grid min-h-[76px] items-center gap-3 border-b border-muted-foreground px-4 py-2.5 last:border-b-0 hover:bg-primary-muted"
+                                style={columns(hosts.length)}
+                              >
+                                <span className="grid min-w-0 gap-1">
+                                  <strong className="truncate text-xs">{skill.name}</strong>
+                                  <span className="truncate text-[10px] text-muted-foreground">
+                                    {skill.description || "无描述"}
+                                  </span>
+                                </span>
+                                {hosts.map((host) => {
+                                  const deployment = project.deployments[skill.id]?.[host.id];
+                                  const operation = `project:${project.id}:${skill.id}:${host.id}`;
+                                  return (
+                                    <span
+                                      key={host.id}
+                                      className="grid min-h-12 place-items-center content-center gap-0.5"
+                                    >
+                                      <Switch
+                                        checked={Boolean(deployment?.enabled)}
+                                        disabled={!project.available || busy === operation}
+                                        label={`${deployment?.enabled ? "关闭" : "启用"} ${project.name} 的 ${skill.name}（${host.name}）`}
+                                        onChange={(enabled) =>
+                                          void toggleProjectSkill(
+                                            project.id,
+                                            skill.id,
+                                            host.id,
+                                            enabled,
+                                          )
+                                        }
+                                      />
+                                      {deployment ? (
+                                        <span className="flex h-[18px] items-center gap-1">
+                                          <StatusBadge deployment={deployment} />
+                                          {deployment.enabled &&
+                                          (deployment.status === "modified" ||
+                                            deployment.status === "missing") ? (
+                                            <button
+                                              type="button"
+                                              className="grid size-[18px] cursor-pointer place-items-center rounded border border-border bg-card text-muted-foreground hover:bg-primary disabled:cursor-wait disabled:opacity-50 [&_svg]:size-2.5"
+                                              aria-label={`将 ${skill.name} 重置为中央版本`}
+                                              title="重置为中央版本"
+                                              disabled={
+                                                busy ===
+                                                `reset:project:${project.id}:${skill.id}:${host.id}`
+                                              }
+                                              onClick={() =>
+                                                void resetProjectSkill(
+                                                  project.id,
+                                                  skill.id,
+                                                  host.id,
+                                                )
+                                              }
+                                            >
+                                              <RotateCcw />
+                                            </button>
+                                          ) : null}
+                                        </span>
+                                      ) : (
+                                        <span className="h-[18px]" />
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : null}
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </article>
             );
           })}
