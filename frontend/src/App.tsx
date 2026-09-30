@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { OverviewPage } from "@/pages/overview-page";
 import { PromptsPage } from "@/pages/prompts-page";
 import { ProjectsPage } from "@/pages/projects-page";
+import { ProvidersPage } from "@/pages/providers-page";
 import { ReferencesPage } from "@/pages/references-page";
 import { ResourcePage } from "@/pages/resource-page";
 import { SettingsPage } from "@/pages/settings-page";
@@ -42,6 +43,7 @@ function App() {
           <Route path={viewPaths.projects} element={<ProjectsPage />} />
           <Route path={viewPaths.skills} element={<ResourcePage kind="skills" />} />
           <Route path={viewPaths.mcps} element={<ResourcePage kind="mcps" />} />
+          <Route path={viewPaths.providers} element={<ProvidersPage />} />
           <Route path={viewPaths.agents} element={<ResourcePage kind="agents" />} />
           <Route path={viewPaths.prompts} element={<PromptsPage />} />
           <Route path={viewPaths.references} element={<ReferencesPage />} />

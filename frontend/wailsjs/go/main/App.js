@@ -22,6 +22,10 @@ export function CreatePrompt(arg1, arg2) {
   return window['go']['main']['App']['CreatePrompt'](arg1, arg2);
 }
 
+export function CreateProvider(arg1) {
+  return window['go']['main']['App']['CreateProvider'](arg1);
+}
+
 export function CreateReference(arg1, arg2) {
   return window['go']['main']['App']['CreateReference'](arg1, arg2);
 }
@@ -32,6 +36,10 @@ export function DeleteProject(arg1, arg2) {
 
 export function DeletePrompt(arg1) {
   return window['go']['main']['App']['DeletePrompt'](arg1);
+}
+
+export function DeleteProvider(arg1) {
+  return window['go']['main']['App']['DeleteProvider'](arg1);
 }
 
 export function DeleteReference(arg1) {
@@ -68,6 +76,10 @@ export function ReadReference(arg1) {
 
 export function Refresh() {
   return window['go']['main']['App']['Refresh']();
+}
+
+export function RefreshProviderModels(arg1) {
+  return window['go']['main']['App']['RefreshProviderModels'](arg1);
 }
 
 export function RelocateProject(arg1) {
@@ -120,6 +132,10 @@ export function UpdateHostPaths(arg1, arg2, arg3, arg4) {
 
 export function UpdatePrompt(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdatePrompt'](arg1, arg2, arg3);
+}
+
+export function UpdateProvider(arg1, arg2) {
+  return window['go']['main']['App']['UpdateProvider'](arg1, arg2);
 }
 
 export function UpdateReference(arg1, arg2, arg3) {

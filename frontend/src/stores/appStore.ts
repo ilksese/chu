@@ -14,6 +14,10 @@ import {
   createPrompt,
   createReference,
   deleteReference,
+  createProvider,
+  updateProvider,
+  deleteProvider,
+  refreshProviderModels,
   deletePrompt,
   restoreBackup,
   testMCP as testMCPAPI,
@@ -34,6 +38,8 @@ import {
   type Host,
   type MCPInput,
   type Prompt,
+  type Provider,
+  type ProviderInput,
   type Reference,
   type SkillCandidate,
   type SkillUpdate,
@@ -49,6 +55,7 @@ const emptySnapshot: Snapshot = {
   agents: [],
   prompts: [],
   references: [],
+  providers: [],
   projects: [],
   lastScan: "",
 };
@@ -81,6 +88,12 @@ export function filterVisibleHosts(hosts: Host[], hiddenHostIDs: string[]) {
 
 type Notice = { message: string; error?: boolean };
 type HostPaths = Pick<Host, "configPath" | "skillPath" | "agentPath">;
+
+function providerNotice(provider: Provider | undefined, success: string, failure: string): Notice {
+  return provider?.modelsError
+    ? { message: `${failure}：${provider.modelsError}`, error: true }
+    : { message: success };
+}
 
 type AppStore = {
   snapshot: Snapshot;
@@ -118,6 +131,10 @@ type AppStore = {
   createReference: (name: string, content: string) => Promise<boolean>;
   updateReference: (item: Reference, name: string, content: string) => Promise<boolean>;
   deleteReference: (id: string) => Promise<boolean>;
+  createProvider: (input: ProviderInput) => Promise<boolean>;
+  updateProvider: (id: string, input: ProviderInput) => Promise<boolean>;
+  deleteProvider: (id: string) => Promise<boolean>;
+  refreshProviderModels: (id: string) => Promise<boolean>;
   addProject: () => Promise<boolean>;
   renameProject: (projectID: string, name: string) => Promise<boolean>;
   relocateProject: (projectID: string) => Promise<boolean>;
@@ -134,11 +151,18 @@ type AppStore = {
 let previewSerial = 0;
 
 export const useAppStore = create<AppStore>((set, get) => {
-  async function run(operation: string, action: () => Promise<Snapshot>, success: string) {
+  async function run(
+    operation: string,
+    action: () => Promise<Snapshot>,
+    success: string | ((snapshot: Snapshot) => Notice),
+  ) {
     set({ busy: operation, notice: undefined });
     try {
       const snapshot = await action();
-      set({ snapshot, notice: { message: success } });
+      set({
+        snapshot,
+        notice: typeof success === "string" ? { message: success } : success(snapshot),
+      });
       return true;
     } catch (error) {
       set({ notice: { message: String(error), error: true } });
@@ -289,6 +313,42 @@ export const useAppStore = create<AppStore>((set, get) => {
       ),
     deleteReference: (id) =>
       run(`delete:reference:${id}`, () => deleteReference(id), "Reference 已删除"),
+    createProvider: (input) =>
+      run(
+        "add:providers",
+        () => createProvider(input),
+        (snapshot) =>
+          providerNotice(
+            snapshot.providers.find((provider) => provider.name === input.name.trim()),
+            "供应商已保存",
+            "供应商已保存，模型获取失败",
+          ),
+      ),
+    updateProvider: (id, input) =>
+      run(
+        `update:provider:${id}`,
+        () => updateProvider(id, input),
+        (snapshot) =>
+          providerNotice(
+            snapshot.providers.find((provider) => provider.id === id),
+            "供应商已更新",
+            "供应商已更新，模型获取失败",
+          ),
+      ),
+    deleteProvider: (id) => run(`delete:provider:${id}`, () => deleteProvider(id), "供应商已删除"),
+    refreshProviderModels: async (id) => {
+      const saved = await run(
+        `refresh:provider:${id}`,
+        () => refreshProviderModels(id),
+        (snapshot) =>
+          providerNotice(
+            snapshot.providers.find((provider) => provider.id === id),
+            "模型已刷新",
+            "模型获取失败",
+          ),
+      );
+      return saved && !get().snapshot.providers.find((provider) => provider.id === id)?.modelsError;
+    },
     addProject: async () => {
       const count = get().snapshot.projects.length;
       set({ busy: "add:project", notice: undefined });

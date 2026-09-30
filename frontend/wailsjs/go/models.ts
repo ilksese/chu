@@ -140,6 +140,30 @@ export namespace main {
 	        this.status = source["status"];
 	    }
 	}
+	export class ProviderView {
+	    id: string;
+	    name: string;
+	    envApiKey: string;
+	    baseUrl: string;
+	    models: string[];
+	    modelsFetchedAt: string;
+	    modelsError: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProviderView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.envApiKey = source["envApiKey"];
+	        this.baseUrl = source["baseUrl"];
+	        this.models = source["models"];
+	        this.modelsFetchedAt = source["modelsFetchedAt"];
+	        this.modelsError = source["modelsError"];
+	    }
+	}
 	export class ReferenceView {
 	    id: string;
 	    name: string;
@@ -239,6 +263,7 @@ export namespace main {
 	    agents: AgentView[];
 	    prompts: PromptView[];
 	    references: ReferenceView[];
+	    providers: ProviderView[];
 	    lastScan: string;
 	
 	    static createFrom(source: any = {}) {
@@ -255,6 +280,7 @@ export namespace main {
 	        this.agents = this.convertValues(source["agents"], AgentView);
 	        this.prompts = this.convertValues(source["prompts"], PromptView);
 	        this.references = this.convertValues(source["references"], ReferenceView);
+	        this.providers = this.convertValues(source["providers"], ProviderView);
 	        this.lastScan = source["lastScan"];
 	    }
 	
@@ -309,6 +335,25 @@ export namespace main {
 		}
 	}
 	
+	
+	export class ProviderInput {
+	    name: string;
+	    apiKey: string;
+	    envApiKey: string;
+	    baseUrl: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProviderInput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.apiKey = source["apiKey"];
+	        this.envApiKey = source["envApiKey"];
+	        this.baseUrl = source["baseUrl"];
+	    }
+	}
 	
 	
 	export class SkillCandidate {

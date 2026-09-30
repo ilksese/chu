@@ -23,19 +23,21 @@ import (
 )
 
 type App struct {
-	ctx   context.Context
-	mu    sync.Mutex
-	root  string
-	state appState
+	ctx              context.Context
+	mu               sync.Mutex
+	root             string
+	state            appState
+	providerRequests map[string]*providerRequest
 }
 
 type appState struct {
-	Version  int                 `json:"version"`
-	Paths    map[string]hostPath `json:"paths,omitempty"`
-	Skills   []storedSkill       `json:"skills"`
-	MCPs     []storedMCP         `json:"mcps"`
-	Agents   []storedAgent       `json:"agents"`
-	Projects []storedProject     `json:"projects,omitempty"`
+	Version   int                 `json:"version"`
+	Paths     map[string]hostPath `json:"paths,omitempty"`
+	Skills    []storedSkill       `json:"skills"`
+	MCPs      []storedMCP         `json:"mcps"`
+	Agents    []storedAgent       `json:"agents"`
+	Projects  []storedProject     `json:"projects,omitempty"`
+	Providers []ProviderView      `json:"providers"`
 }
 
 type hostPath struct {
@@ -154,6 +156,7 @@ type Snapshot struct {
 	Agents     []AgentView     `json:"agents"`
 	Prompts    []PromptView    `json:"prompts"`
 	References []ReferenceView `json:"references"`
+	Providers  []ProviderView  `json:"providers"`
 	LastScan   string          `json:"lastScan"`
 }
 
@@ -611,7 +614,7 @@ func (a *App) snapshotLocked() Snapshot {
 		agents = append(agents, AgentView{ID: item.ID, Name: item.Name, Description: item.Description, Model: item.Model, Source: item.Source, Managed: true, EnabledOn: enabled})
 	}
 	prompts := a.promptViewsLocked(lock, specs)
-	return Snapshot{Root: a.root, Hosts: hosts, Projects: a.projectViewsLocked(hosts), Skills: skills, MCPs: mcps, Agents: agents, Prompts: prompts, References: a.referenceViewsLocked(), LastScan: time.Now().Format(time.RFC3339)}
+	return Snapshot{Root: a.root, Hosts: hosts, Projects: a.projectViewsLocked(hosts), Skills: skills, MCPs: mcps, Agents: agents, Prompts: prompts, References: a.referenceViewsLocked(), Providers: a.providerViewsLocked(), LastScan: time.Now().Format(time.RFC3339)}
 }
 
 func (a *App) hostView(spec hostSpec) HostView {

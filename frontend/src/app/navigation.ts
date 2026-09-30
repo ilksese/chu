@@ -4,6 +4,7 @@ import {
   Bot,
   FolderKanban,
   Network,
+  Server,
   ScrollText,
   Settings,
   Sparkles,
@@ -15,6 +16,7 @@ export type View =
   | "projects"
   | "skills"
   | "mcps"
+  | "providers"
   | "agents"
   | "prompts"
   | "references"
@@ -32,6 +34,7 @@ export const navigation: NavigationItem[] = [
   { id: "projects", label: "项目管理", path: "/projects", icon: FolderKanban },
   { id: "skills", label: "Skills", path: "/skills", icon: Sparkles },
   { id: "mcps", label: "MCP 服务", path: "/mcps", icon: Network },
+  { id: "providers", label: "Providers", path: "/providers", icon: Server },
   { id: "agents", label: "自定义 Agent", path: "/agents", icon: Bot },
   { id: "prompts", label: "提示词", path: "/prompts", icon: ScrollText },
   { id: "references", label: "References", path: "/references", icon: BookOpenText },

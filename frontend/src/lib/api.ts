@@ -92,6 +92,23 @@ export type ProjectRemovalResult = {
   retained: string[];
 };
 
+export type Provider = {
+  id: string;
+  name: string;
+  envApiKey: string;
+  baseUrl: string;
+  models: string[];
+  modelsFetchedAt: string;
+  modelsError: string;
+};
+
+export type ProviderInput = {
+  name: string;
+  apiKey: string;
+  envApiKey: string;
+  baseUrl: string;
+};
+
 export type Snapshot = {
   root: string;
   hosts: Host[];
@@ -101,6 +118,7 @@ export type Snapshot = {
   agents: Agent[];
   prompts: Prompt[];
   references: Reference[];
+  providers: Provider[];
   lastScan: string;
 };
 
@@ -155,6 +173,10 @@ type AppAPI = {
   ReadReference: (id: string) => Promise<string>;
   UpdateReference: (id: string, name: string, content: string) => Promise<Snapshot>;
   DeleteReference: (id: string) => Promise<Snapshot>;
+  CreateProvider: (input: ProviderInput) => Promise<Snapshot>;
+  UpdateProvider: (id: string, input: ProviderInput) => Promise<Snapshot>;
+  DeleteProvider: (id: string) => Promise<Snapshot>;
+  RefreshProviderModels: (id: string) => Promise<Snapshot>;
   AddProject: () => Promise<Snapshot>;
   RenameProject: (projectID: string, name: string) => Promise<Snapshot>;
   RelocateProject: (projectID: string) => Promise<Snapshot>;
@@ -177,6 +199,7 @@ declare global {
 let demoSnapshot: Snapshot = {
   root: "~/.chu",
   lastScan: new Date().toISOString(),
+  providers: [],
   hosts: [
     {
       id: "opencode",
@@ -335,6 +358,20 @@ let demoSnapshot: Snapshot = {
 const demoReferenceContent = new Map<string, string>([
   ["project-conventions.md", "项目约定与常用上下文。"],
 ]);
+
+const demoProviderEnv = new Set<string>();
+
+function demoProviderModels(provider: Provider): Provider {
+  if (provider.envApiKey && !demoProviderEnv.has(provider.envApiKey)) {
+    return { ...provider, modelsError: "浏览器预览无法读取本机环境变量" };
+  }
+  return {
+    ...provider,
+    models: ["gpt-4.1", "gpt-4.1-mini", "o4-mini"],
+    modelsFetchedAt: new Date().toISOString(),
+    modelsError: "",
+  };
+}
 
 function api() {
   return window.go?.main?.App;
@@ -661,6 +698,67 @@ export async function deleteReference(id: string) {
   demoSnapshot = {
     ...demoSnapshot,
     references: demoSnapshot.references.filter((item) => item.id !== id),
+  };
+  return demoSnapshot;
+}
+
+export async function createProvider(input: ProviderInput) {
+  const backend = api();
+  if (backend) return backend.CreateProvider(input);
+  if (input.apiKey) demoProviderEnv.add(input.envApiKey);
+  const provider = demoProviderModels({
+    id: crypto.randomUUID(),
+    name: input.name.trim(),
+    baseUrl: input.baseUrl.trim().replace(/\/+$/, ""),
+    envApiKey: input.envApiKey,
+    models: [],
+    modelsFetchedAt: "",
+    modelsError: "",
+  });
+  demoSnapshot = { ...demoSnapshot, providers: [...demoSnapshot.providers, provider] };
+  return demoSnapshot;
+}
+
+export async function updateProvider(id: string, input: ProviderInput) {
+  const backend = api();
+  if (backend) return backend.UpdateProvider(id, input);
+  if (input.apiKey) demoProviderEnv.add(input.envApiKey);
+  const baseUrl = input.baseUrl.trim().replace(/\/+$/, "");
+  demoSnapshot = {
+    ...demoSnapshot,
+    providers: demoSnapshot.providers.map((provider) => {
+      if (provider.id !== id) return provider;
+      const changed =
+        provider.baseUrl !== baseUrl ||
+        provider.envApiKey !== input.envApiKey ||
+        Boolean(input.apiKey);
+      const updated = { ...provider, name: input.name.trim(), baseUrl, envApiKey: input.envApiKey };
+      return changed
+        ? demoProviderModels({ ...updated, models: [], modelsFetchedAt: "", modelsError: "" })
+        : updated;
+    }),
+  };
+  return demoSnapshot;
+}
+
+export async function deleteProvider(id: string) {
+  const backend = api();
+  if (backend) return backend.DeleteProvider(id);
+  demoSnapshot = {
+    ...demoSnapshot,
+    providers: demoSnapshot.providers.filter((provider) => provider.id !== id),
+  };
+  return demoSnapshot;
+}
+
+export async function refreshProviderModels(id: string) {
+  const backend = api();
+  if (backend) return backend.RefreshProviderModels(id);
+  demoSnapshot = {
+    ...demoSnapshot,
+    providers: demoSnapshot.providers.map((provider) =>
+      provider.id === id ? demoProviderModels(provider) : provider,
+    ),
   };
   return demoSnapshot;
 }
