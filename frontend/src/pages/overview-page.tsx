@@ -26,7 +26,7 @@ import { viewPaths, type View } from "@/app/navigation";
 import { HostMark, StatusDot } from "@/components/HostControls";
 import { Button } from "@/components/ui/Button";
 import type { ResourceKind } from "@/lib/resources";
-import { useAppStore } from "@/stores/appStore";
+import { filterVisibleHosts, useAppStore } from "@/stores/appStore";
 
 type ShowcaseKind = ResourceKind | "prompts";
 
@@ -383,14 +383,24 @@ function FeatureCarousel({
 
 export function OverviewPage() {
   const snapshot = useAppStore((state) => state.snapshot);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const navigate = useNavigate();
-  const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
+  const hosts = filterVisibleHosts(snapshot.hosts, hiddenHostIDs);
+  const visibleHostIDs = new Set(hosts.map((host) => host.id));
+  const installedHosts = hosts.filter((host) => host.installed).length;
   const activeDeployments = [
     ...snapshot.skills,
     ...snapshot.mcps,
     ...snapshot.agents,
     ...(snapshot.prompts ?? []),
-  ].reduce((total, item) => total + Object.values(item.enabledOn).filter(Boolean).length, 0);
+  ].reduce(
+    (total, item) =>
+      total +
+      Object.entries(item.enabledOn).filter(
+        ([hostID, enabled]) => enabled && visibleHostIDs.has(hostID),
+      ).length,
+    0,
+  );
   const unmanaged = [...snapshot.skills, ...snapshot.mcps, ...snapshot.agents].filter(
     (item) => !item.managed,
   ).length;
@@ -449,7 +459,7 @@ export function OverviewPage() {
             <small>已接入宿主</small>
             <strong>
               {installedHosts}
-              <span> / {snapshot.hosts.length}</span>
+              <span> / {hosts.length}</span>
             </strong>
             <em>自动扫描本机</em>
           </div>
@@ -490,31 +500,35 @@ export function OverviewPage() {
         </article>
       </section>
 
-      <section className="mt-8 min-w-0">
-        <div className="mb-3 flex justify-end">
-          <Button type="button" variant="ghost" onClick={() => openView("settings")}>
-            查看路径 <ArrowRight />
-          </Button>
-        </div>
-        <div className="grid grid-cols-3 gap-3 max-[1120px]:grid-cols-1">
-          {snapshot.hosts.map((host) => (
-            <article
-              key={host.id}
-              className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-border bg-card p-3 shadow-neo-sm"
-            >
-              <HostMark host={host} />
-              <div className="grid min-w-0">
-                <strong className="truncate text-xs">{host.name}</strong>
-                <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <StatusDot ready={host.installed} />
-                  {host.installed ? "已连接" : "未检测到"}
-                </span>
-              </div>
-              <code className="text-[9px] text-muted-foreground">{host.format.toUpperCase()}</code>
-            </article>
-          ))}
-        </div>
-      </section>
+      {hosts.length ? (
+        <section className="mt-8 min-w-0">
+          <div className="mb-3 flex justify-end">
+            <Button type="button" variant="ghost" onClick={() => openView("settings")}>
+              查看路径 <ArrowRight />
+            </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-3 max-[1120px]:grid-cols-1">
+            {hosts.map((host) => (
+              <article
+                key={host.id}
+                className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border-2 border-border bg-card p-3 shadow-neo-sm"
+              >
+                <HostMark host={host} />
+                <div className="grid min-w-0">
+                  <strong className="truncate text-xs">{host.name}</strong>
+                  <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <StatusDot ready={host.installed} />
+                    {host.installed ? "已连接" : "未检测到"}
+                  </span>
+                </div>
+                <code className="text-[9px] text-muted-foreground">
+                  {host.format.toUpperCase()}
+                </code>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check, KeyRound, RotateCcw } from "lucide-react";
-import { HostMark, StatusDot } from "@/components/HostControls";
+import { HostMark, StatusDot, Switch } from "@/components/HostControls";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Input } from "@/components/ui/Input";
 import type { Host } from "@/lib/api";
 import { useAppStore } from "@/stores/appStore";
@@ -16,7 +17,9 @@ function pathsFromHost(host: Host): HostPaths {
 export function SettingsPage() {
   const snapshot = useAppStore((state) => state.snapshot);
   const busy = useAppStore((state) => state.busy);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const restoreHost = useAppStore((state) => state.restoreHost);
+  const toggleHostVisibility = useAppStore((state) => state.toggleHostVisibility);
   const updateHost = useAppStore((state) => state.updateHost);
   const [drafts, setDrafts] = useState<Record<string, HostPaths>>(() =>
     Object.fromEntries(snapshot.hosts.map((host) => [host.id, pathsFromHost(host)])),
@@ -38,62 +41,80 @@ export function SettingsPage() {
           {snapshot.hosts.map((host) => {
             const paths = drafts[host.id] ?? pathsFromHost(host);
             return (
-              <article key={host.id} className="rounded-lg border-2 border-border bg-card p-[18px]">
-                <header className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 border-b border-muted-foreground pb-4">
-                  <HostMark host={host} />
-                  <div>
-                    <h2 className="m-0 text-base font-extrabold">{host.name}</h2>
-                    <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <StatusDot ready={host.installed} />
-                      {host.installed ? "已检测到安装" : "未检测到安装"}
+              <CollapsibleCard
+                key={host.id}
+                summary={
+                  <>
+                    <HostMark host={host} />
+                    <span className="grid min-w-0 flex-1 gap-1">
+                      <h2 className="m-0 truncate text-base font-extrabold">{host.name}</h2>
+                      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <StatusDot ready={host.installed} />
+                        {host.installed ? "已检测到安装" : "未检测到安装"}
+                      </span>
                     </span>
+                  </>
+                }
+                actions={
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground">
+                      在界面中显示
+                    </span>
+                    <Switch
+                      checked={!hiddenHostIDs.includes(host.id)}
+                      label={`${host.name} 在界面中显示`}
+                      onChange={(visible) => toggleHostVisibility(host.id, visible)}
+                    />
+                    <Badge>{host.format.toUpperCase()}</Badge>
                   </div>
-                  <Badge>{host.format.toUpperCase()}</Badge>
-                </header>
-                <div className="grid gap-2.5 py-4">
-                  {(["configPath", "skillPath", "agentPath"] as const).map((key) => (
-                    <label
-                      key={key}
-                      className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3 text-[11px] font-semibold text-muted-foreground"
+                }
+              >
+                <div className="px-[18px] pb-[18px]">
+                  <div className="grid gap-2.5 py-4">
+                    {(["configPath", "skillPath", "agentPath"] as const).map((key) => (
+                      <label
+                        key={key}
+                        className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-3 text-[11px] font-semibold text-muted-foreground"
+                      >
+                        {key === "configPath"
+                          ? "配置文件"
+                          : key === "skillPath"
+                            ? "Skill 目录"
+                            : "Agent 目录"}
+                        <Input
+                          value={paths[key]}
+                          onChange={(event) =>
+                            setDrafts((current) => ({
+                              ...current,
+                              [host.id]: { ...paths, [key]: event.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <footer className="flex justify-end gap-2.5 pt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={busy === `restore:${host.id}`}
+                      onClick={() => void restoreHost(host)}
                     >
-                      {key === "configPath"
-                        ? "配置文件"
-                        : key === "skillPath"
-                          ? "Skill 目录"
-                          : "Agent 目录"}
-                      <Input
-                        value={paths[key]}
-                        onChange={(event) =>
-                          setDrafts((current) => ({
-                            ...current,
-                            [host.id]: { ...paths, [key]: event.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                  ))}
+                      <RotateCcw />
+                      恢复上次备份
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={busy === `paths:${host.id}`}
+                      onClick={() => void updateHost(host, paths)}
+                    >
+                      <Check />
+                      保存路径
+                    </Button>
+                  </footer>
                 </div>
-                <footer className="flex justify-end gap-2.5 pt-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={busy === `restore:${host.id}`}
-                    onClick={() => void restoreHost(host)}
-                  >
-                    <RotateCcw />
-                    恢复上次备份
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={busy === `paths:${host.id}`}
-                    onClick={() => void updateHost(host, paths)}
-                  >
-                    <Check />
-                    保存路径
-                  </Button>
-                </footer>
-              </article>
+              </CollapsibleCard>
             );
           })}
         </div>

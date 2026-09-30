@@ -6,7 +6,7 @@ import { AddResourceDialog } from "@/components/AddResourceDialog";
 import { ResourceList } from "@/components/ResourceBrowser";
 import type { MCP, Skill } from "@/lib/api";
 import { resourcesFor, type ResourceKind } from "@/lib/resources";
-import { useAppStore } from "@/stores/appStore";
+import { filterVisibleHosts, useAppStore } from "@/stores/appStore";
 
 const pageCopy: Record<ResourceKind, { action: string }> = {
   skills: { action: "安装 Skill" },
@@ -16,6 +16,7 @@ const pageCopy: Record<ResourceKind, { action: string }> = {
 
 export function ResourcePage({ kind }: { kind: ResourceKind }) {
   const snapshot = useAppStore((state) => state.snapshot);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const busy = useAppStore((state) => state.busy);
   const toggleResource = useAppStore((state) => state.toggleResource);
   const importSkill = useAppStore((state) => state.importSkill);
@@ -94,7 +95,7 @@ export function ResourcePage({ kind }: { kind: ResourceKind }) {
           <ResourceList
             kind={kind}
             items={filtered}
-            hosts={snapshot.hosts}
+            hosts={filterVisibleHosts(snapshot.hosts, hiddenHostIDs)}
             busy={busy}
             onToggle={(item, hostID, enabled) =>
               void toggleResource(kind, item.id, hostID, enabled)

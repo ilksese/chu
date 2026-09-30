@@ -1,6 +1,9 @@
+import jcodeIcon from "@/assets/images/jcode.png";
+
 export function HostIcon({ id }: { id: string }) {
   if (id === "claude") return <ClaudeIcon />;
   if (id === "codex") return <CodexIcon />;
+  if (id === "jcode") return <img className="size-full rounded-md" src={jcodeIcon} alt="" aria-hidden="true" />;
   return <OpenCodeIcon />;
 }
 

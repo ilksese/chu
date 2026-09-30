@@ -371,6 +371,9 @@ func (a *App) ToggleMCP(mcpID, hostID string, enabled bool) (Snapshot, error) {
 		item.Deployments = map[string]deployment{}
 	}
 	dep := item.Deployments[hostID]
+	if enabled && hostID == "jcode" && item.Type != "stdio" {
+		return a.snapshotLocked(), errors.New("jcode 目前只支持 stdio MCP")
+	}
 	if err := a.validateMCPConfigHash(hostID, host.ConfigPath); err != nil {
 		return a.snapshotLocked(), err
 	}
@@ -383,7 +386,7 @@ func (a *App) ToggleMCP(mcpID, hostID string, enabled bool) (Snapshot, error) {
 	if err != nil {
 		return a.snapshotLocked(), fmt.Errorf("无法解析宿主配置: %w", err)
 	}
-	key := mcpRootKey(host.ID)
+	key := mcpRootKey(host.ID, root)
 	servers := ensureMap(root, key)
 	if enabled {
 		if dep.Enabled {
@@ -677,7 +680,7 @@ func (a *App) discoveredMCPs(specs []hostSpec) []MCPView {
 		if err != nil {
 			continue
 		}
-		for name, raw := range ensureMap(root, mcpRootKey(spec.id)) {
+		for name, raw := range ensureMap(root, mcpRootKey(spec.id, root)) {
 			if known[name] {
 				continue
 			}
@@ -802,10 +805,15 @@ func defaultHostSpecs() []hostSpec {
 	opencodeConfig := []string{filepath.Join(configHome, "opencode", "opencode.json"), filepath.Join(configHome, "opencode.json")}
 	opencodeSkills := []string{filepath.Join(configHome, "opencode", "skills"), filepath.Join(home, ".opencode", "skills")}
 	opencodeAgents := []string{filepath.Join(configHome, "opencode", "agents"), filepath.Join(home, ".opencode", "agents")}
+	jcodeHome := os.Getenv("JCODE_HOME")
+	if jcodeHome == "" {
+		jcodeHome = filepath.Join(home, ".jcode")
+	}
 	return []hostSpec{
 		{id: "opencode", name: "OpenCode", description: "本地开发 Agent", config: opencodeConfig, skills: opencodeSkills, agents: opencodeAgents},
 		{id: "claude", name: "Claude Code", description: "Anthropic coding Agent", config: []string{filepath.Join(home, ".claude", "settings.json")}, skills: []string{filepath.Join(home, ".claude", "skills")}, agents: []string{filepath.Join(home, ".claude", "agents")}},
 		{id: "codex", name: "Codex", description: "OpenAI coding Agent", config: []string{filepath.Join(home, ".codex", "config.toml")}, skills: []string{filepath.Join(home, ".codex", "skills")}, agents: []string{filepath.Join(home, ".codex", "agents")}},
+		{id: "jcode", name: "jcode", description: "Rust coding Agent", config: []string{filepath.Join(jcodeHome, "mcp.json")}, skills: []string{filepath.Join(jcodeHome, "skills")}, agents: []string{filepath.Join(jcodeHome, "agents")}},
 	}
 }
 
@@ -823,12 +831,19 @@ func deploymentViews(deployments map[string]deployment, specs []hostSpec) (map[s
 	return enabled, modes
 }
 
-func mcpRootKey(hostID string) string {
+func mcpRootKey(hostID string, root map[string]any) string {
 	if hostID == "claude" {
 		return "mcpServers"
 	}
 	if hostID == "codex" {
 		return "mcp_servers"
+	}
+	if hostID == "jcode" {
+		// jcode 把 mcpServers 当作 servers 的别名，两者同时存在会解析失败。
+		if _, ok := root["mcpServers"]; ok {
+			return "mcpServers"
+		}
+		return "servers"
 	}
 	return "mcp"
 }

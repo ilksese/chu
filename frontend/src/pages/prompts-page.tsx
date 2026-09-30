@@ -7,10 +7,11 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Popover } from "@/components/ui/Popover";
 import { readPrompt, type Prompt } from "@/lib/api";
-import { useAppStore } from "@/stores/appStore";
+import { filterVisibleHosts, useAppStore } from "@/stores/appStore";
 
 export function PromptsPage() {
   const snapshot = useAppStore((state) => state.snapshot);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const busy = useAppStore((state) => state.busy);
   const createPrompt = useAppStore((state) => state.createPrompt);
   const deletePrompt = useAppStore((state) => state.deletePrompt);
@@ -25,7 +26,9 @@ export function PromptsPage() {
   const prompts = (snapshot.prompts ?? [])
     .filter((item) => !query || `${item.name} ${item.preview}`.toLowerCase().includes(query))
     .toSorted((left, right) => left.name.localeCompare(right.name));
-  const hosts = snapshot.hosts.filter((host) => host.installed);
+  const hosts = filterVisibleHosts(snapshot.hosts, hiddenHostIDs).filter(
+    (host) => host.installed,
+  );
 
   return (
     <>

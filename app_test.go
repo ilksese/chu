@@ -224,3 +224,32 @@ func TestMCPConfigHashesStayInSync(t *testing.T) {
 		t.Fatal("external change was not detected")
 	}
 }
+
+func TestJcodeMCPKeepsExistingServerKey(t *testing.T) {
+	dir := t.TempDir()
+	config := filepath.Join(dir, "mcp.json")
+	if err := atomicWrite(config, []byte(`{"mcpServers":{"existing":{"command":"a"}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{root: t.TempDir(), state: appState{
+		Paths: map[string]hostPath{"jcode": {Config: config, Skills: filepath.Join(dir, "skills"), Agents: filepath.Join(dir, "agents")}},
+		MCPs: []storedMCP{
+			{ID: "local", Name: "local", Type: "stdio", Command: "npx", Deployments: map[string]deployment{}},
+			{ID: "remote", Name: "remote", Type: "http", Endpoint: "https://example.com/mcp", Deployments: map[string]deployment{}},
+		},
+	}}
+	if _, err := app.ToggleMCP("remote", "jcode", true); err == nil {
+		t.Fatal("remote MCP was written to jcode")
+	}
+	if _, err := app.ToggleMCP("local", "jcode", true); err != nil {
+		t.Fatal(err)
+	}
+	root, err := readConfig(config, "json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	servers := ensureMap(root, "mcpServers")
+	if _, ok := root["servers"]; ok || servers["local"] == nil || servers["existing"] == nil {
+		t.Fatalf("config = %#v", root)
+	}
+}

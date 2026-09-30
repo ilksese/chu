@@ -211,6 +211,17 @@ let demoSnapshot: Snapshot = {
       agentPath: "~/.codex/agents",
       format: "toml",
     },
+    {
+      id: "jcode",
+      name: "jcode",
+      description: "Rust coding Agent",
+      installed: true,
+      status: "ready",
+      configPath: "~/.jcode/mcp.json",
+      skillPath: "~/.jcode/skills",
+      agentPath: "~/.jcode/agents",
+      format: "json",
+    },
   ],
   projects: [
     {

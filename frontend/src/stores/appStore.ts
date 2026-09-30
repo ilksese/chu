@@ -53,15 +53,43 @@ const emptySnapshot: Snapshot = {
   lastScan: "",
 };
 
+const hiddenHostsStorageKey = "chu:hidden-hosts:v1";
+
+function readHiddenHostIDs() {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(hiddenHostsStorageKey) ?? "[]");
+    return Array.isArray(value)
+      ? [...new Set(value.filter((hostID): hostID is string => typeof hostID === "string"))]
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHiddenHostIDs(hostIDs: string[]) {
+  try {
+    if (hostIDs.length) localStorage.setItem(hiddenHostsStorageKey, JSON.stringify(hostIDs));
+    else localStorage.removeItem(hiddenHostsStorageKey);
+  } catch {
+    // UI state still works for the current session when storage is unavailable.
+  }
+}
+
+export function filterVisibleHosts(hosts: Host[], hiddenHostIDs: string[]) {
+  return hosts.filter((host) => !hiddenHostIDs.includes(host.id));
+}
+
 type Notice = { message: string; error?: boolean };
 type HostPaths = Pick<Host, "configPath" | "skillPath" | "agentPath">;
 
 type AppStore = {
   snapshot: Snapshot;
+  hiddenHostIDs: string[];
   skillUpdates: SkillUpdate[];
   busy: string;
   notice?: Notice;
   demo: boolean;
+  toggleHostVisibility: (hostID: string, visible: boolean) => void;
   initialize: () => Promise<void>;
   clearNotice: () => void;
   refresh: () => Promise<boolean>;
@@ -122,9 +150,21 @@ export const useAppStore = create<AppStore>((set, get) => {
 
   return {
     snapshot: emptySnapshot,
+    hiddenHostIDs: readHiddenHostIDs(),
     skillUpdates: [],
     busy: "",
     demo: false,
+
+    toggleHostVisibility: (hostID, visible) =>
+      set((state) => {
+        const hiddenHostIDs = visible
+          ? state.hiddenHostIDs.filter((id) => id !== hostID)
+          : state.hiddenHostIDs.includes(hostID)
+            ? state.hiddenHostIDs
+            : [...state.hiddenHostIDs, hostID];
+        writeHiddenHostIDs(hiddenHostIDs);
+        return { hiddenHostIDs };
+      }),
 
     initialize: async () => {
       try {

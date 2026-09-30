@@ -450,6 +450,8 @@ func (a *App) promptTarget(hostID string) (string, error) {
 			dir = filepath.Join(dir, "opencode")
 		}
 		return filepath.Join(dir, "AGENTS.md"), nil
+	case "jcode":
+		return filepath.Join(dir, "prompt-overlay.md"), nil
 	default:
 		return filepath.Join(dir, "AGENTS.md"), nil
 	}

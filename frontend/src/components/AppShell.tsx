@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from "react-router";
 import { navigation, viewFromPath } from "@/app/navigation";
 import { StatusDot } from "@/components/HostControls";
 import { Dock, DockIcon } from "@/components/ui/Dock";
-import { useAppStore } from "@/stores/appStore";
+import { filterVisibleHosts, useAppStore } from "@/stores/appStore";
 
 const noticeStyle = tv({
   base: "fixed top-[76px] right-6 z-80 grid w-[min(420px,calc(100vw-32px))] grid-cols-[18px_minmax(0,1fr)_24px] items-center gap-2 rounded-md border-2 p-3 text-xs shadow-neo [&_svg]:size-4",
@@ -22,12 +22,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const view = viewFromPath(location.pathname);
   const snapshot = useAppStore((state) => state.snapshot);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const busy = useAppStore((state) => state.busy);
   const notice = useAppStore((state) => state.notice);
   const demo = useAppStore((state) => state.demo);
   const refresh = useAppStore((state) => state.refresh);
   const clearNotice = useAppStore((state) => state.clearNotice);
-  const installedHosts = snapshot.hosts.filter((host) => host.installed).length;
+  const hosts = filterVisibleHosts(snapshot.hosts, hiddenHostIDs);
+  const installedHosts = hosts.filter((host) => host.installed).length;
 
   useEffect(() => {
     if (!notice) return;
@@ -121,10 +123,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               </strong>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-                <StatusDot ready={installedHosts > 0} />
-                {installedHosts} 个宿主在线
-              </span>
+              {hosts.length ? (
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+                  <StatusDot ready={installedHosts > 0} />
+                  {installedHosts} 个宿主在线
+                </span>
+              ) : null}
               {demo ? (
                 <span className="inline-flex min-h-[22px] items-center rounded-full border border-border bg-primary px-2 text-[10px] font-bold">
                   预览模式

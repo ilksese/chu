@@ -44,6 +44,7 @@ var projectSkillDirs = map[string]string{
 	"opencode": filepath.Join(".opencode", "skills"),
 	"claude":   filepath.Join(".claude", "skills"),
 	"codex":    filepath.Join(".agents", "skills"),
+	"jcode":    filepath.Join(".jcode", "skills"),
 }
 
 func (a *App) AddProject() (Snapshot, error) {

@@ -97,6 +97,7 @@ export function ResourceList({
       </div>
       {items.map((item) => {
         const update = updates.find((entry) => entry.id === item.id);
+        const sourceHost = hosts.find((host) => item.enabledOn[host.id]);
         return (
           <div
             key={item.id}
@@ -118,14 +119,16 @@ export function ResourceList({
                     <Badge tone="warning" size="sm">
                       待导入
                     </Badge>
-                    <Badge tone="info" size="sm">
-                      {hosts.find((host) => item.enabledOn[host.id])?.name || "未知宿主"}
-                    </Badge>
+                    {sourceHost ? (
+                      <Badge tone="info" size="sm">
+                        {sourceHost.name}
+                      </Badge>
+                    ) : null}
                   </>
                 ) : null}
                 {kind === "skills" &&
                 item.managed &&
-                Object.values((item as Skill).modeByHost).includes("copy") ? (
+                visibleHosts.some((host) => (item as Skill).modeByHost[host.id] === "copy") ? (
                   <Badge tone="neutral" size="sm">
                     copy
                   </Badge>

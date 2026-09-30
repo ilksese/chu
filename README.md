@@ -1,6 +1,6 @@
 # Chu
 
-本地 AI 编程 Agent 资源管理桌面应用：集中管理 **Skills、MCP 服务、自定义 Agent**，并部署到 OpenCode、Claude Code、Codex 三个宿主。
+本地 AI 编程 Agent 资源管理桌面应用：集中管理 **Skills、MCP 服务、自定义 Agent**，并部署到 OpenCode、Claude Code、Codex、jcode 四个宿主。
 
 - 桌面壳：[Wails v2](https://wails.io)（Go + WebView2）
 - 前端：React + TypeScript + Vite + Tailwind CSS + [Magic UI](https://magicui.design) + Zustand
@@ -15,7 +15,7 @@
 | Skill 导入 | 把宿主目录中已有的 skill 收编为中央管理（优先 link，回退 copy） |
 | Skill 部署 | 按宿主启用/禁用，link 或 copy；目标被外部修改时拒绝误删 |
 | MCP 管理 | 添加 stdio / http / sse 三类 MCP，支持命令、参数、环境变量、请求头、token |
-| MCP 部署 | 直接写入宿主原生配置（`opencode.json` / `settings.json` / `config.toml`），写入前自动备份 |
+| MCP 部署 | 直接写入宿主原生配置（`opencode.json` / `settings.json` / `config.toml` / jcode `mcp.json`；jcode 仅支持 stdio），写入前自动备份 |
 | MCP 测试 | stdio 检查命令存在性；http/sse 发请求验证连通性 |
 | Agent 创建 | 编写自定义 Agent（markdown + frontmatter），部署到各宿主 |
 | 备份恢复 | 宿主配置被 Chu 修改后自动生成 `.chu.bak`，可一键恢复 |
@@ -65,6 +65,7 @@ go build -o build/chu.exe .   # Windows；其他平台去掉 .exe
 | OpenCode | `~/.config/opencode/opencode.json`（Windows 下为 `%APPDATA%`） | `~/.config/opencode/skills`、`agents` |
 | Claude Code | `~/.claude/settings.json` | `~/.claude/skills`、`agents` |
 | Codex | `~/.codex/config.toml` | `~/.codex/skills`、`agents` |
+| jcode | `~/.jcode/mcp.json`（遵循 `JCODE_HOME`；提示词写入同目录 `prompt-overlay.md`） | `~/.jcode/skills`、`agents` |
 
 ## 仓库结构
 

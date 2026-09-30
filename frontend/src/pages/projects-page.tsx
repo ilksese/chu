@@ -1,9 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Check,
-  ChevronDown,
   FolderKanban,
   FolderOpen,
   Pencil,
@@ -16,10 +14,11 @@ import { HostMark, Switch } from "@/components/HostControls";
 import { AnimatedList } from "@/components/ui/AnimatedList";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import type { Host, Project, ProjectDeployment } from "@/lib/api";
-import { useAppStore } from "@/stores/appStore";
+import { filterVisibleHosts, useAppStore } from "@/stores/appStore";
 
 const statusCopy: Record<ProjectDeployment["status"], string> = {
   enabled: "已同步",
@@ -30,6 +29,7 @@ const statusCopy: Record<ProjectDeployment["status"], string> = {
 
 export function ProjectsPage() {
   const snapshot = useAppStore((state) => state.snapshot);
+  const hiddenHostIDs = useAppStore((state) => state.hiddenHostIDs);
   const busy = useAppStore((state) => state.busy);
   const addProject = useAppStore((state) => state.addProject);
   const renameProject = useAppStore((state) => state.renameProject);
@@ -37,23 +37,13 @@ export function ProjectsPage() {
   const toggleProjectSkill = useAppStore((state) => state.toggleProjectSkill);
   const resetProjectSkill = useAppStore((state) => state.resetProjectSkill);
   const deleteProject = useAppStore((state) => state.deleteProject);
-  const reducedMotion = useReducedMotion();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const hostsInUI = filterVisibleHosts(snapshot.hosts, hiddenHostIDs);
   const [editing, setEditing] = useState<string>();
   const [name, setName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Project>();
   const skills = snapshot.skills
     .filter((skill) => skill.managed)
     .toSorted((a, b) => a.name.localeCompare(b.name));
-
-  function toggleExpanded(projectID: string) {
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(projectID)) next.delete(projectID);
-      else next.add(projectID);
-      return next;
-    });
-  }
 
   async function submitName(event: FormEvent<HTMLFormElement>, projectID: string) {
     event.preventDefault();
@@ -92,20 +82,40 @@ export function ProjectsPage() {
       ) : (
         <AnimatedList aria-label="项目列表">
           {snapshot.projects.map((project) => {
-            const open = expanded.has(project.id);
-            const hosts = visibleHosts(project, snapshot.hosts);
+            const hosts = visibleHosts(project, hostsInUI);
+            const hostIDs = new Set(hosts.map((host) => host.id));
             const deploymentCount = Object.values(project.deployments).reduce(
               (count, byHost) =>
-                count + Object.values(byHost).filter((item) => item.enabled).length,
+                count +
+                Object.entries(byHost).filter(
+                  ([hostID, item]) => item.enabled && hostIDs.has(hostID),
+                ).length,
               0,
             );
             return (
-              <article
+              <CollapsibleCard
                 key={project.id}
-                className="overflow-hidden rounded-lg border-2 border-border bg-card shadow-neo-sm"
-              >
-                <div className="flex min-h-[78px] items-center gap-3 px-4 py-3">
-                  {editing === project.id ? (
+                summary={
+                  <>
+                    <span className="grid size-10 shrink-0 place-items-center rounded-md border-2 border-border bg-primary [&_svg]:size-[18px]">
+                      <FolderKanban />
+                    </span>
+                    <span className="grid min-w-0 flex-1 gap-1">
+                      <strong className="truncate text-sm">{project.name}</strong>
+                      <span
+                        className="truncate text-[10px] text-muted-foreground"
+                        title={project.path}
+                      >
+                        {project.path}
+                      </span>
+                    </span>
+                    <Badge tone={project.available ? "neutral" : "warning"}>
+                      {project.available ? `${deploymentCount} 项部署` : "目录不可用"}
+                    </Badge>
+                  </>
+                }
+                header={
+                  editing === project.id ? (
                     <form
                       className="flex min-w-0 flex-1 items-center gap-3"
                       onSubmit={(event) => void submitName(event, project.id)}
@@ -133,76 +143,36 @@ export function ProjectsPage() {
                         <X />
                       </Button>
                     </form>
-                  ) : (
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-left"
-                      aria-expanded={open}
-                      aria-controls={`project-content-${project.id}`}
-                      onClick={() => toggleExpanded(project.id)}
-                    >
-                      <span className="grid size-10 shrink-0 place-items-center rounded-md border-2 border-border bg-primary [&_svg]:size-[18px]">
-                        <FolderKanban />
-                      </span>
-                      <span className="grid min-w-0 flex-1 gap-1">
-                        <strong className="truncate text-sm">{project.name}</strong>
-                        <span
-                          className="truncate text-[10px] text-muted-foreground"
-                          title={project.path}
-                        >
-                          {project.path}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2">
-                        <Badge tone={project.available ? "neutral" : "warning"}>
-                          {project.available ? `${deploymentCount} 项部署` : "目录不可用"}
-                        </Badge>
-                        <ChevronDown
-                          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
-                        />
-                      </span>
-                    </button>
-                  )}
-                  {editing !== project.id ? (
+                  ) : undefined
+                }
+                actions={
+                  <>
+                    {editing !== project.id ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`重命名 ${project.name}`}
+                        onClick={() => {
+                          setName(project.name);
+                          setEditing(project.id);
+                        }}
+                      >
+                        <Pencil />
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
-                      aria-label={`重命名 ${project.name}`}
-                      onClick={() => {
-                        setName(project.name);
-                        setEditing(project.id);
-                      }}
+                      aria-label={`删除 ${project.name}`}
+                      onClick={() => setPendingDelete(project)}
                     >
-                      <Pencil />
+                      <Trash2 />
                     </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label={`删除 ${project.name}`}
-                    onClick={() => setPendingDelete(project)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-
-                <AnimatePresence initial={false}>
-                  {open ? (
-                    <motion.div
-                      id={`project-content-${project.id}`}
-                      className="overflow-hidden"
-                      initial={reducedMotion ? false : { height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={
-                        reducedMotion
-                          ? { duration: 0 }
-                          : { duration: 0.18, ease: [0.16, 1, 0.3, 1] }
-                      }
-                    >
-                      <div className="border-t-2 border-border">
+                  </>
+                }
+              >
                         {!project.available ? (
                           <div className="flex items-center justify-between gap-4 bg-warning-surface px-4 py-3 text-xs text-warning-foreground">
                             <span>
@@ -232,7 +202,7 @@ export function ProjectsPage() {
                               </Link>
                             </span>
                           </div>
-                        ) : hosts.length === 0 ? (
+                        ) : hostsInUI.length > 0 && hosts.length === 0 ? (
                           <div className="grid min-h-36 place-items-center p-6 text-center text-xs text-muted-foreground">
                             未检测到可配置的 Agent 宿主。
                           </div>
@@ -323,11 +293,7 @@ export function ProjectsPage() {
                             ))}
                           </div>
                         )}
-                      </div>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-              </article>
+              </CollapsibleCard>
             );
           })}
         </AnimatedList>
