@@ -6,6 +6,7 @@ import {
   type Ref,
   type ToggleEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { tv } from "tailwind-variants";
 
 const popover = tv({
@@ -54,7 +55,7 @@ function Popover({
     };
   }, [open, target]);
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       popover="auto"
@@ -65,7 +66,8 @@ function Popover({
       }}
     >
       {children}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
