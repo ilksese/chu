@@ -1,84 +1,112 @@
 # Chu
 
-本地 AI 编程 Agent 资源管理桌面应用：集中管理 **Skills、MCP 服务、自定义 Agent**，并部署到 OpenCode、Claude Code、Codex、jcode 四个宿主。
+**Rust + Slint 原生桌面 AI Agent 资源管理器。** 集中管理 Skills、MCP、自定义 Agent、提示词、References、Providers 和项目部署，支持 OpenCode、Claude Code、Codex、jcode 四个宿主。
 
-- 桌面壳：[Wails v2](https://wails.io)（Go + WebView2）
-- 前端：React + TypeScript + Vite + Tailwind CSS + [Magic UI](https://magicui.design) + Zustand
-- 包管理：pnpm
-- 界面：浅色主题，neo-brutalist 风格，视觉规范见 `DESIGN.md`
+- 原生窗口：Slint 1.18.1、Winit、软件渲染；界面与业务均由 Rust/Slint 实现。
+- 桌面尺寸：默认 `1360×860`，最小 `1080×680`，不做移动端适配。
+- 浅色 neo-brutalist 风格，视觉规范见 `DESIGN.md`；语义颜色只定义在 `ui/theme.slint`。
+- 应用图标位于 `assets/`，保留既有原图，窗口图像在编译时内嵌。
+- 兼容已有中央状态、锁文件、宿主配置、部署记录、备份和凭证格式。
 
 ## 功能
 
-| 功能 | 说明 |
+| 页面 | 能力 |
 | --- | --- |
-| Skill 安装 | 从公开 HTTPS Git 仓库克隆（需包含 `SKILL.md`），存入中央目录 |
-| Skill 导入 | 把宿主目录中已有的 skill 收编为中央管理（优先 link，回退 copy） |
-| Skill 部署 | 按宿主启用/禁用，link 或 copy；目标被外部修改时拒绝误删 |
-| MCP 管理 | 添加 stdio / http / sse 三类 MCP，支持命令、参数、环境变量、请求头、token |
-| MCP 部署 | 直接写入宿主原生配置（`opencode.json` / `settings.json` / `config.toml` / jcode `mcp.json`；jcode 仅支持 stdio），写入前自动备份 |
-| MCP 测试 | stdio 检查命令存在性；http/sse 发请求验证连通性 |
-| Agent 创建 | 编写自定义 Agent（markdown + frontmatter），部署到各宿主 |
-| 备份恢复 | 宿主配置被 Chu 修改后自动生成 `.chu.bak`，可一键恢复 |
-| 宿主路径 | 支持修改各宿主的配置 / skills / agents 路径 |
+| 总览 | Chu 资源统计、宿主发现、快捷入口、中央资源库位置 |
+| 项目管理 | 目录选择、添加、重命名、重新定位；Skill 副本部署；修改/缺失/冲突识别、显式重置和保护性清理 |
+| Skills | 默认只列 Chu 管理的数据；多选导入宿主技能并立即应用；Git 来源安装、追踪、检查/应用更新、部署和删除 |
+| MCP 服务 | 默认只列 Chu 管理的数据；多选导入并立即应用；stdio/http/sse、命令/参数/环境变量/请求头/令牌、JSON/TOML 配置及连接测试 |
+| Providers | 创建/编辑/删除、独立凭证变量、模型目录获取与刷新；失败保留缓存，禁止重定向转发凭证 |
+| 自定义 Agent | 名称、描述、模型、提示词及 Markdown/frontmatter 分发 |
+| 提示词 | CRUD、重命名、外部文件发现、按宿主切换、原始备份恢复及干净副本同步 |
+| References | Markdown 编辑、重命名、外部发现、删除和路径保护 |
+| 设置 | 宿主路径、显示/隐藏偏好、配置备份恢复 |
 
-## 构建
+私有权限与原子替换保护文件写入；配置修改前创建备份。已修改的宿主/项目副本不会被静默覆盖或删除。文件和网络操作在独立串行工作线程执行。
 
-依赖：Go 1.25+、Node 22.22+、pnpm；`wails build` / `wails dev` 需要与 `go.mod` 一致的 Wails CLI v2.16.0（`go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0`）。
+## 开发与验证
 
-### 开发
-
-```bash
-pm2 start 'wails dev' --name 'dev:chu' --cwd "$PWD"
-```
-
-### 构建
+使用 **Rust 1.92+ / Cargo**。Git 用于 Skill 来源仓库；目标平台还需相应 SDK、链接器和原生开发库。应用构建、测试和验收数据生成只使用原生工具链。
 
 ```bash
-wails build
+cargo run --locked
+./scripts/verify-rust.sh
 ```
 
-产物在 `build/bin/chu(.exe)`。
-
-不走 wails CLI 也可以（前端产物通过 `go:embed` 打包）：
+验证脚本执行：
 
 ```bash
-cd frontend
-pnpm install
-pnpm run build
-cd ..
-go build -o build/chu.exe .   # Windows；其他平台去掉 .exe
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo test --all-targets --locked
+cargo build --locked
 ```
 
-## 数据位置
+可用 `cargo test --locked --test imports` 等命令执行定向回归。`tests/` 验证真实资源操作、数据兼容、鼠标/键盘交互、主题和打包；Rust example 自带隔离数据生成测试。
 
-运行时数据在 `~/.chu/`：
+## 原生构建与打包
 
-- `state.json` — 资源清单与部署状态
-- `skills/` — 中央 skill 目录
-- `agents/` — 自定义 Agent
-- `sources/` — Git 克隆缓存
-
-各宿主默认路径（可在应用内修改）：
-
-| 宿主 | 配置 | skills / agents |
-| --- | --- | --- |
-| OpenCode | `~/.config/opencode/opencode.json`（Windows 下为 `%APPDATA%`） | `~/.config/opencode/skills`、`agents` |
-| Claude Code | `~/.claude/settings.json` | `~/.claude/skills`、`agents` |
-| Codex | `~/.codex/config.toml` | `~/.codex/skills`、`agents` |
-| jcode | `~/.jcode/mcp.json`（遵循 `JCODE_HOME`；提示词写入同目录 `prompt-overlay.md`） | `~/.jcode/skills`、`agents` |
-
-## 仓库结构
-
-```
-main.go                    Wails 入口，embed 前端产物
-app.go                     后端：资源存储、部署、宿主配置读写
-frontend/src/App.tsx       前端初始化与路由入口
-frontend/src/pages/        页面及页面局部状态
-frontend/src/components/   跨页面 UI 和功能组件
-frontend/src/stores/       Zustand 全局状态与后端操作
-frontend/src/lib/api.ts    Wails API 边界与浏览器模拟数据
-DESIGN.md                  视觉规范
-PRODUCT.md                 产品定义
+```bash
+./scripts/build.sh
 ```
 
-前端只把 Snapshot、全局操作状态、通知和后端动作放入 Zustand。搜索词、轮播位置、当前选中项和表单草稿保留在所属页面，避免无关页面订阅临时 UI 状态。直接运行 Vite 时 `window.go.main.App` 不存在，`api.ts` 会使用内存模拟数据；真实配置写入必须在 Wails 环境验证。
+产物：`build/bin/chu`；macOS 同时生成未签名的 `build/bin/Chu.app`，Windows 为 `build/bin/chu.exe`。macOS 打包包含完整标准/Retina 尺寸 `.icns` 和图标元数据，Windows 目标嵌入 `assets/windows/app.ico`。
+
+```bash
+./scripts/build-macos-arm.sh
+./scripts/build-macos-intel.sh
+./scripts/build-macos-universal.sh
+./scripts/build-linux.sh
+./scripts/build-windows.sh
+```
+
+跨编译需要目标 Rust toolchain、平台 SDK 和链接器；脚本失败即停止。Linux 需要系统字体、Fontconfig、X11/Wayland 与 xkbcommon 等原生依赖；中文显示需可用的 CJK 字体。分发签名、公证等发布工作不属于本地构建。
+
+## 隔离验收与截图
+
+**写路径测试禁止使用真实用户配置。** 通过 Rust example 创建新的验收目录：
+
+```bash
+cargo run --locked --example create_fixture -- /tmp/chu-native-qa
+cargo run --locked -- --root /tmp/chu-native-qa/chu --home /tmp/chu-native-qa/home
+```
+
+输出目录必须不存在；省略目录参数时生成可保留的临时数据，并打印 `base/root/home` JSON。数据生成器通过真实应用命令操作资源，Provider 使用本地 HTTP 服务，不请求真实供应商。
+
+```bash
+cargo run --locked -- --root /tmp/chu-native-qa/chu --home /tmp/chu-native-qa/home \
+  --request '{"method":"Refresh","args":[]}'
+cargo run --locked -- --root /tmp/chu-native-qa/chu --home /tmp/chu-native-qa/home \
+  --page 2 --screenshot /tmp/chu-native-qa/skills.png
+cargo run --locked -- --root /tmp/chu-native-qa/chu --home /tmp/chu-native-qa/home \
+  --page 3 --import-dialog --screenshot /tmp/chu-native-qa/import-mcp.png
+```
+
+`--root` 与 `--home` 必须成对提供。页面编号：0 总览、1 项目、2 Skills、3 MCP、4 Providers、5 Agents、6 提示词、7 References、8 设置。截图来自真实原生窗口，尺寸受系统缩放与窗口限制影响；详见 `references/debug.md`。
+
+## 导入并立即应用
+
+Skills/MCP 页面点击“导入”，在弹窗中多选来源资源，再勾选底部的目标宿主。点击“导入并应用”完成中央入库与部署；未勾选宿主时只入库，不移除原宿主数据。
+
+- 已有同名资源不能重复导入；不同内容、标识冲突、来源变化会阻止整批提交。
+- MCP 候选列表不展示凭证或敏感参数；jcode 不接受 HTTP/SSE，选择远程服务时会自动取消其应用勾选。
+- 写入失败回滚中央副本、目标部署及配置备份。
+- 先只导入后，仍可在详情中接管内容一致的原宿主条目；不同内容继续保护。
+
+## 数据与代码结构
+
+中央目录仍是 `~/.chu/`：`state.json`、`chu-lock.json`、资源目录、Git 缓存和 `preferences.json`。Provider 密钥不进入 Snapshot。宿主路径遵循 `XDG_CONFIG_HOME`、Windows `APPDATA` 和 `JCODE_HOME`；Codex 项目技能使用 `.agents/skills`，jcode 提示词使用 `prompt-overlay.md`。
+
+```text
+Cargo.toml / Cargo.lock    原生依赖与固定版本
+build.rs                  Slint 编译和 Windows 图标资源
+src/                      后端、工作线程、视图、CLI
+ui/                       原生界面和唯一主题 theme.slint
+assets/                   应用图标及可编辑源图
+examples/create_fixture.rs 隔离验收数据生成器
+tests/                    原生业务、交互、布局、兼容性测试
+scripts/                  构建、打包、验证
+references/               架构、代码规范、调试和验收记录
+```
+
+架构见 `references/rust-architecture.md`，验收记录见 `references/rust-acceptance.md`。

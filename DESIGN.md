@@ -1,333 +1,82 @@
+# Chu 原生桌面设计规范
 
-# DESIGN.md - Pikachu Color Palette Design System (PC Web) - Optimized Version
-> **Theme**: Pikachu UI Design System
-> **Target Platform**: PC Web / Desktop SaaS Dashboard Applications
-> **Style Positioning**: Energetic Neo‑Brutalist SaaS UI (Not cartoon skin)
-> **Core Brand Palette**: `#f4dc26` (Electric Yellow), `#ffe62d` (Bright Flash), `#e92929` (Thunderbolt Red), `#5c3613` (Brown Fur/Accents), `#000000` (Electric Outline Black)
+## 视觉定位
 
----
+Chu 使用浅色、温暖纸面底色和粗黑轮廓的 neo-brutalist 桌面工作台风格。黄色用于品牌和主操作强调，不铺满大面积背景；红色只用于危险、错误及既定的可见焦点提示。成功状态使用绿色，不用危险色装饰普通内容。
 
-## 1. Design Philosophy & Token Architecture
+适用平台为 Rust + Slint 原生桌面。默认窗口 `1360×860`，最小 `1080×680`；不提供移动端布局。不要为了小屏而牺牲桌面资源列表、部署状态或操作区的可读性。
 
-The Pikachu Design System translates the iconic, energetic, and high‑contrast visual identity of Pokémon's mascot into a modern, highly usable PC‑first SaaS dashboard interface.
-We use bold chromatic accents, high‑contrast sharp borders, playful yet clean typography, and crisp geometrical tokens.
+## 原生主题
 
-**Important Design Constraint (Optimized Rule)**:
-> Brand yellow is an accent color, NOT a background color. Limit large yellow surfaces.
-> Red thunder color is reserved exclusively for danger, errors and high‑attention states.
+`ui/theme.slint` 是唯一应用颜色来源。组件只使用 `Theme` 语义属性，不在组件里写颜色字面量；素材自身的品牌填充色除外。新增颜色必须先进入原生主题。
 
-Suitable scenarios: admin dashboards, project management tools, analytics workspace, community backend platforms.
+| 令牌 | 色值 | 用途 |
+| --- | --- | --- |
+| `background` | `#fffdf4` | 温暖画布底色 |
+| `card` | `#ffffff` | 卡片、弹窗表面 |
+| `foreground` / `border` | `#000000` | 主文字、结构轮廓 |
+| `muted-foreground` | `#5c3613` | 描述、辅助文字 |
+| `primary` | `#f4dc26` | 主操作、活动导航；限小面积强调 |
+| `primary-hover` | `#ffe62d` | 主操作悬停 |
+| `primary-muted` | `#fffbe8` | 选中资源的轻背景 |
+| `muted` | `#f7f5ec` | 中性辅助背景 |
+| `subtle-border` | `#e5e5e5` | 轻分隔 |
+| `destructive` / `ring` | `#e92929` | 危险操作、错误、可见焦点 |
+| `error-surface` | `#fff3f3` | 错误和危险轻背景 |
+| `success` | `#229948` | 成功状态 |
+| `success-surface` | `#eefaf1` | 成功通知轻背景 |
 
----
+所有应用语义色在清理迁移中保持不变。主色区域不超过画面的大约 15%，长段文字放在中性底色上。禁用状态降低不透明度并禁用交互，不用危险色表示不可用。
 
-## 2. Color System
+## 字体与排版
 
-### 2.1 Core Palette Mapping
-| Token Name | Hex Code | Usage Description | Area Limitation Rule |
-| :--- | :--- | :--- | :--- |
-| **Primary (Brand / Main)** | `#f4dc26` | Main branding, primary action buttons, active tabs, key highlights. | Accent only, never use for full‑width backgrounds or large blocks (> 15% screen area) |
-| **Primary Light (Flash)** | `#ffe62d` | Hover states, glowing effects, soft backgrounds, badges, chart highlight. | Small accent element only |
-| **Secondary (Accent / Alert‑Danger)** | `#e92929` | Danger actions, notifications, critical badges, error alerts, focus‑ring. | Danger / error only. DO NOT use for normal decoration. |
-| **Tertiary (Details / Muted)** | `#5c3613` | Deep contrast text, card headers, footer backgrounds, deep shadows, dashed borders. | Secondary text & decorative UI |
-| **Monochrome Dark (Outline)** | `#000000` | Borders, primary body text, high‑contrast icons, structural dividers. | Main text & hard outline border |
+使用系统字体及其中文回退，不再捆绑未使用的字体文件。
 
-### 2.2 Functional Colors
-* **Background (Canvas)**: `#FFFDF4` (Warm off‑white paper tone for reduced eye strain on PC screens)
-* **Surface (Cards / Modals)**: `#FFFFFF` (Pure white containers)
-* **Foreground (Text Main)**: `#000000` (Maximum legibility)
-* **Foreground Muted**: `#5c3613` (Secondary text, subtitles, captions)
-* **Border Color‑Default Heavy**: `#000000` (Bold neo‑brutalism 2px border)
-* **Border Color‑Subtle**: `#5c3613` (1px soft separation border)
-* **Focus Ring**: `#e92929` with 3px spread (High visibility accessibility outline)
+| 场景 | 逻辑字号 | 字重 |
+| --- | --- | --- |
+| 页面标题 | 30px | 800 |
+| 品牌标题 | 30px | 800 |
+| 总览重点标题 | 26px | 700 |
+| 卡片/弹窗标题 | 20px | 700 |
+| 正文 | 14px | 常规 |
+| 按钮、说明 | 13px | 按钮 600 |
+| 辅助文字 | 12px | 常规 |
+| 路径、次要元数据 | 10–11px | 常规 |
 
-#### 2.3 Neutral Extended Scale (New Added for SaaS)
-For table, divider, disabled states, form helper backgrounds
-- `--neutral‑100: #f7f5ec`
-- `--neutral‑200: #e5e5e5`
-- `--neutral‑300: #cccccc`
-- `--neutral‑400: #888888`
+标题允许省略，不把布局撑出窗口。长描述与路径可换行，正文和模型列表必须可滚动与复制；最小窗口下详情正文不能被挤成不可读的区域。
 
-#### 2.4 Success & Info Functional Colors (Missing before, added for SaaS dashboard)
-> Not part of pikachu brand palette, functional status only
-- Success Green: `#229948`
-- Info Blue: `#2469d8`
-- Warning Orange: `#f29c1f`
+## 布局与组件
 
-#### 2.5 Accessibility Contrast Check
-- Black text `#000000` on warm white canvas `#FFFDF4` → WCAG AA compliant
-- Muted brown text `#5c3613` on white background → meets minimum readable contrast
-- Never put pure black text on top of primary yellow `#f4dc26` for long paragraph text (only short button text)
+- 固定左侧主导航，右侧显示页面标题、操作栏和内容区。
+- 资源页面使用列表/详情分栏；页面搜索和选中项保持为瞬时状态。
+- 常用间距为 8/12/16/20/24/28px；卡片内边距 18–24px。
+- 结构边框以 2px 为主，轻分隔使用 1px；按钮圆角 6px，卡片 8–10px。
+- 按钮最小高度 36px，导航项 40px；图标和短标签保持紧凑，不让空白按钮横向占满布局。
+- 如需阴影，使用小偏移的硬阴影，并从主题前景色派生，避免模糊发光效果。
+- 共享基础控件位于 `ui/components.slint`，不能为单页另起一套颜色或按钮交互。
+- 保持浅色方案；不要根据 OS 深色模式意外改变应用内容主题。
 
----
+## 弹窗与导入
 
-## 3. Typography (H1‑H6, Body)
+弹窗采用居中卡片和遮罩，标题、关闭入口、错误信息、内容区与底部动作清晰分层。内容较长时只滚动中间区域，关闭/确认操作保持可见。
 
-Using a clean modern sans‑serif stack (`Inter`, `PingFang SC`, `Microsoft YaHei`) combined with strong font weights to capture the energetic feel.
+Skills/MCP 导入弹窗：
 
-| Element | Font Size | Font Weight | Line Height | Letter Spacing | Color |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **H1** | `36px` (2.25rem) | `800` (ExtraBold) | `1.2` | `-0.02em` | `#000000` |
-| **H2** | `28px` (1.75rem) | `700` (Bold) | `1.25` | `-0.01em` | `#000000` |
-| **H3** | `22px` (1.375rem)| `700` (Bold) | `1.3` | `0` | `#000000` |
-| **H4 (Card Header Title)** | `18px` (1.125rem)| `600` (SemiBold)| `1.4` | `0` | `#000000` |
-| **H5** | `16px` (1.0rem) | `600` (SemiBold)| `1.4` | `0` | `#5c3613` |
-| **H6** | `14px` (0.875rem)| `600` (SemiBold)| `1.5` | `0.01em` | `#5c3613` |
-| **Body Large** | `16px` (1.0rem) | `400` (Regular)| `1.6` | `0` | `#000000` |
-| **Body Base** | `14px` (0.875rem)| `400` (Regular)| `1.5` | `0` | `#000000` |
-| **Caption / Small** | `12px` (0.75rem)| `400` (Regular)| `1.4` | `0.02em` | `#5c3613` |
+- 用名称、来源宿主、路径及类型区分候选；优先显示可导入项。
+- 已有同名资源或无效配置明确显示不可用原因。
+- 勾选框支持多选，不能在候选列表暴露凭证或完整敏感启动参数。
+- “导入后立即应用到”位于弹窗下方固定区域；与提交按钮一起在最小窗口内可见。
+- 不兼容宿主应禁用并解释原因；提交前不做隐式配置写入。
 
-* **Font Family Stack**:
-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+## 交互与可访问性
 
----
+- 主要流程一次点击即可触发；键盘支持 Tab、Enter、Space 与 Escape。
+- 控件提供准确的无障碍名称、启用状态与勾选状态；焦点始终可见。
+- 只负责键盘的 `FocusScope` 保持零尺寸，不能遮挡鼠标命中区域。
+- 鼠标交互回归必须实际发送移动、按下、抬起事件，不能只调用业务回调。
+- 异步操作显示忙碌/禁用状态；成功与错误分别提示，不用颜色作为唯一说明。
+- 避免非必要动画，不使用闪烁、持续脉冲或影响可读性的动效。
 
-## 4. Spacing & Border Radius Tokens
+## 品牌资源
 
-### 4.1 Spacing Scale (8pt Grid)
-* `space‑2xs`: `4px`
-* `space‑xs`: `8px`
-* `space‑sm`: `12px`
-* `space‑md`: `16px` (Default padding/margin)
-* `space‑lg`: `24px`
-* `space‑xl`: `32px`
-* `space‑2xl`: `48px`
-* `space‑3xl`: `64px`
-
-### 4.2 Border Radius
-* `radius‑none`: `0px` (Strict geometric style)
-* `radius‑sm`: `4px` (Inputs, small buttons)
-* `radius‑md`: `8px` (Standard cards, dropdowns, tabs)
-* `radius‑lg`: `16px` (Modals, large containers)
-* `radius‑xl`: `12px` (Dashboard large overview cards)
-* `radius‑full`: `9999px` (Pills, circular badges, avatar icons)
-
----
-
-## 5. Layout & Grid Architecture (PC Web)
-
-* **Max Container Width**: `1280px` (Centered with auto margins)
-* **Grid System**: 12‑Column Grid with `24px` gutter width.
-* **Layout Structure (Standard Dashboard / Portal)**:
-  * **Header**: Fixed top bar (`height: 64px`, background `#FFFFFF`, bottom border `2px solid #000000`).
-  * **Sidebar**: Fixed or collapsible left sidebar (`width: 260px`, background `#FFFDF4`, right border `2px solid #000000`).
-  * **Main Content Area**: Flexible workspace (`background: #FFFDF4`, padding `32px`).
-  * **Cards & Panels**: Elevated surfaces (`background: #FFFFFF`, border `2px solid #000000`).
-
-> ✨Optimized Shadow Rule (Major Change):
-> Do NOT apply hard‑offset black shadow to EVERY card.
-> - Primary important cards: `4px 4px 0px #000000` (--shadow‑neo)
-> - Normal secondary cards: `2px 2px 0px #000000` (--shadow‑neo‑sm)
-> - Static read‑only cards: No offset shadow, only border
-
----
-
-## 6. Interactive States & Base Components
-
-### 6.1 Buttons
-All buttons feature high‑contrast borders and sharp or semi‑rounded corners (`radius‑md`) with solid drop shadows for tactile feedback.
-
-#### A. Primary Button (`.btn‑primary`)
-* **Default**:
-  * Background: `#f4dc26`
-  * Text: `#000000` (Font‑weight: `700`)
-  * Border: `2px solid #000000`
-  * Box‑shadow: `3px 3px 0px #000000`
-* **Hover (`:hover`)**:
-  * Background: `#ffe62d`
-  * Transform: `translate(-1px, -1px)`
-  * Box‑shadow: `4px 4px 0px #000000`
-* **Active / Force (`:active`)**:
-  * Background: `#f4dc26`
-  * Transform: `translate(2px, 2px)`
-  * Box‑shadow: `1px 1px 0px #000000`
-* **Disabled (`:disabled`)**:
-  * Background: `#E5E5E5`
-  * Text: `#A3A3A3`
-  * Border: `2px solid #CCCCCC`
-  * Box‑shadow: `none`
-  * Cursor: `not‑allowed`
-
-#### B. Ghost Button (`.btn‑ghost`)
-* **Default**:
-  * Background: `transparent`
-  * Text: `#000000` (Font‑weight: `600`)
-  * Border: `2px solid transparent`
-* **Hover (`:hover`)**:
-  * Background: `rgba(244, 220, 38, 0.15)`
-  * Border: `2px solid #000000`
-* **Active / Force (`:active`)**:
-  * Background: `rgba(244, 220, 38, 0.3)`
-* **Disabled (`:disabled`)**:
-  * Text: `#A3A3A3`
-  * Border: `2px solid transparent`
-
-#### C. Dashed Border Button (`.btn‑dashed`)
-* **Default**:
-  * Background: `#FFFFFF`
-  * Text: `#5c3613` (Font‑weight: `600`)
-  * Border: `2px dashed #5c3613`
-* **Hover (`:hover`)**:
-  * Background: `#FFFDF4`
-  * Border: `2px dashed #000000`
-  * Text: `#000000`
-* **Active / Force (`:active`)**:
-  * Background: `#f4dc26`
-  * Border: `2px solid #000000`
-* **Disabled (`:disabled`)**:
-  * Background: `#FAFAFA`
-  * Text: `#CCCCCC`
-  * Border: `2px dashed #CCCCCC`
-
-#### D. Danger Button (`.btn‑danger`) [NEW]
-* Default: bg `#e92929`, text white, border `2px solid #000`
-* Hover: `#f14c4c`
-
-### 6.2 Form Inputs & Controls
-* **Input Field (`input[type="text"]`)**:
-  * Height: `40px`
-  * Background: `#FFFFFF`
-  * Border: `2px solid #000000`
-  * Border‑radius: `6px`
-  * Padding: `0 12px`
-  * Font‑size: `14px`
-  * **Focus State**: Outline none, border color `#e92929`, box‑shadow `0 0 0 3px rgba(233, 41, 41, 0.15)`.
-  * **Disabled State**: Background `#F5F5F5`, border color `#CCCCCC`, text `#888888`.
-
-### 6.3 Cards & Containers (`.card`)
-* Background: `#FFFFFF`
-* Border: `2px solid #000000`
-* Border‑radius: `12px`
-* Padding: `24px`
-* Shadow Rules:
-  - Interactive / Highlight Card: `box‑shadow: 4px 4px 0px #000000;`
-  - Normal Static Card: `box‑shadow: 2px 2px 0px #000000;`
-* **Hover Effect (Interactive Cards)**:
-  * Transform: `translate(-2px, -2px)`
-  * Box‑shadow: `6px 6px 0px #000000`
-  * Transition: `all 0.2s cubic‑bezier(0.4, 0, 0.2, 1)`
-
-### 6.4 New SaaS Standard Components (Added)
-#### Badge / Pill Tag
-- radius‑full, padding: 4px 10px, font‑size: 12px
-- Primary badge: bg `#f4dc26`, text black
-- Danger badge: bg `#e92929`, text white
-
-#### Alert Notification Banner
-- Error alert: border‑left 4px solid `#e92929`
-- Success alert: border‑left 4px solid `#229948`
-
-#### Table
-- Header background: `#FFFDF4`
-- Row bottom border: `1px solid #5c3613`
-- Hover row bg: `rgba(244, 220, 38, 0.08)`
-
-#### Tabs Navigation
-- Active tab bottom border thick 3px `#f4dc26`
-
----
-
-## 7. CSS Variables & SCSS / Sass Token Reference
-
-### Root CSS Custom‑Properties
-:root {
-  /* Pikachu Core Brand Palette */
-  --pk‑yellow‑primary: #f4dc26;
-  --pk‑yellow‑flash: #ffe62d;
-  --pk‑red‑thunder: #e92929;
-  --pk‑brown‑fur: #5c3613;
-  --pk‑black‑outline: #000000;
-
-  /* Surfaces & Backgrounds */
-  --bg‑canvas: #FFFDF4;
-  --bg‑surface: #FFFFFF;
-
-  /* Extended Neutral Scale */
-  --neutral‑100: #f7f5ec;
-  --neutral‑200: #e5e5e5;
-  --neutral‑300: #cccccc;
-  --neutral‑400: #888888;
-
-  /* Functional Status Colors */
-  --color‑success: #229948;
-  --color‑info: #2469d8;
-  --color‑warning: #f29c1f;
-
-  /* Typography */
-  --font‑main: 'Inter', system‑ui, -apple‑system, sans‑serif;
-
-  /* Neo‑Brutalist Offset Shadow System (Graded) */
-  --shadow‑neo‑sm: 2px 2px 0px #000000;
-  --shadow‑neo: 4px 4px 0px #000000;
-  --shadow‑neo‑lg: 6px 6px 0px #000000;
-}
-
-### SCSS / SASS Variables File (_pikachu‑tokens.scss)
-// ========= Pikachu SaaS Design Tokens =========
-// Brand Colors
-$pk‑yellow‑primary: #f4dc26;
-$pk‑yellow‑flash: #ffe62d;
-$pk‑red‑thunder: #e92929;
-$pk‑brown‑fur: #5c3613;
-$pk‑black‑outline: #000000;
-
-// Surface Background
-$bg‑canvas: #FFFDF4;
-$bg‑surface: #FFFFFF;
-
-// Neutrals
-$neutral‑100: #f7f5ec;
-$neutral‑200: #e5e5e5;
-$neutral‑300: #cccccc;
-$neutral‑400: #888888;
-
-// Functional Status
-$color‑success: #229948;
-$color‑info: #2469d8;
-$color‑warning: #f29c1f;
-
-// Spacing 8‑pt grid
-$space‑2xs: 4px;
-$space‑xs: 8px;
-$space‑sm: 12px;
-$space‑md: 16px;
-$space‑lg: 24px;
-$space‑xl: 32px;
-$space‑2xl: 48px;
-$space‑3xl: 64px;
-
-// Border radius
-$radius‑none: 0px;
-$radius‑sm: 4px;
-$radius‑md: 8px;
-$radius‑lg: 16px;
-$radius‑xl: 12px;
-$radius‑full: 9999px;
-
-// Shadows
-$shadow‑neo‑sm: 2px 2px 0px #000000;
-$shadow‑neo: 4px 4px 0px #000000;
-$shadow‑neo‑lg: 6px 6px 0px #000000;
-
-// Font stack
-$font‑main: 'Inter', system‑ui, -apple‑system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans‑serif;
-
----
-
-## 8. Implementation Best‑Practice & Forbidden‑List (Optimized New Section)
-### ✅ Recommended
-1. Yellow = action & highlight accent
-2. Black hard border as signature UI feature
-3. Graded shadow instead of universal heavy shadow
-4. Warm off‑white canvas background to reduce eye fatigue
-
-### ❌ Strictly Forbidden
-1. Do NOT use `#e92929` red for non‑danger decorative UI elements
-2. Do NOT fill large page blocks / full cards with primary yellow background
-3. Do NOT use yellow for long‑form paragraph text
-4. Do NOT add heavy `--shadow‑neo‑lg` shadow on every element (over‑crowded UI)
-
----
-
-## 9. Style Final Positioning Summary
-> Energetic Neo‑Brutalist SaaS UI
-> Brand identity comes from yellow accent + thick black outline + offset hard shadow, NOT cartoon illustrations.
+应用图标保持现有图形，不重绘或改色。`assets/app-icon.svg` 为可编辑源图，`assets/app-icon.png` 用于原生窗口和 macOS 打包，`assets/windows/app.ico` 用于 Windows 可执行文件资源。

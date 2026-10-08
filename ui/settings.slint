@@ -1,0 +1,33 @@
+import { ScrollView, LineEdit, CheckBox } from "std-widgets.slint";
+import { Action, Card, Heading, MutedText, HostRow } from "components.slint";
+export component HostSettings inherits ScrollView {
+    in property <[HostRow]> hosts;
+    in property <bool> busy;
+    callback save(string, string, string, string);
+    callback restore(string);
+    callback visibility-changed(string, bool);
+    VerticalLayout {
+        spacing: 18px; padding: 2px;
+        for host in root.hosts: Card {
+            VerticalLayout {
+                padding: 20px; spacing: 12px;
+                HorizontalLayout {
+                    Heading { text: host.name; }
+                    MutedText { text: host.status; }
+                    CheckBox { text: "在界面中显示"; checked: host.visible; enabled: !root.busy; toggled => { root.visibility-changed(host.id, self.checked); } }
+                }
+                MutedText { text: "原生配置文件"; }
+                config := LineEdit { text: host.config; enabled: !root.busy; }
+                MutedText { text: "Skills 目录"; }
+                skills := LineEdit { text: host.skills; enabled: !root.busy; }
+                MutedText { text: "Agents 目录"; }
+                agents := LineEdit { text: host.agents; enabled: !root.busy; }
+                HorizontalLayout {
+                    alignment: end; spacing: 10px;
+                    Action { text: "恢复配置备份"; enabled: !root.busy; clicked => { root.restore(host.id); } }
+                    Action { text: "保存路径"; primary: true; enabled: !root.busy; clicked => { root.save(host.id, config.text, skills.text, agents.text); } }
+                }
+            }
+        }
+    }
+}

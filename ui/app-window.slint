@@ -1,0 +1,240 @@
+import { LineEdit, ScrollView, TextEdit, CheckBox, Palette } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Card, Heading, MutedText, ResourceRow, HostToggle, HostRow, ProjectSkillRow, FormField, CandidateRow, ImportRow, ApplyHostRow } from "components.slint";
+import { Editor } from "editor.slint";
+import { HostSettings } from "settings.slint";
+export { Theme }
+export { ResourceRow, HostToggle, HostRow, ProjectSkillRow, FormField, CandidateRow, ImportRow, ApplyHostRow }
+export component AppWindow inherits Window {
+    title: "Chu Agent Manager · Rust + Slint";
+    // Share the unchanged legacy artwork with the platform application bundle.
+    out property <image> application-icon: @image-url("../assets/app-icon.png");
+    icon: root.application-icon;
+    init => { Palette.color-scheme = ColorScheme.light; }
+    preferred-width: 1360px; preferred-height: 860px;
+    min-width: 1080px; min-height: 680px;
+    background: Theme.background;
+    default-font-size: 14px;
+    in-out property <int> page: 0;
+    in property <string> page-title: "总览";
+    in property <string> page-description: "一个工作台，管理你的 Agent 资源。";
+    in property <bool> busy: false;
+    in property <string> notice;
+    in property <bool> notice-error;
+    in-out property <string> query;
+    in property <[ResourceRow]> rows;
+    in property <[HostRow]> hosts;
+    in property <[HostRow]> visible-hosts;
+    in property <[HostToggle]> deployments;
+    in property <[ProjectSkillRow]> project-skills;
+    in property <[string]> counts;
+    in property <string> selected-id;
+    in property <string> selected-name;
+    in property <string> selected-description;
+    in property <string> selected-meta;
+    in property <string> selected-content;
+    in property <string> selected-models;
+    in property <bool> selected-managed;
+    in property <bool> selected-tracked;
+    in property <string> action-one;
+    in property <string> action-two;
+    in property <string> action-three;
+    in property <string> root-path;
+    in-out property <bool> dialog-open;
+    in property <string> dialog-title;
+    in property <string> dialog-description;
+    in property <string> dialog-error;
+    in property <bool> dialog-installer;
+    in property <bool> dialog-importer;
+    in property <int> import-count;
+    in property <bool> has-apply-targets;
+    in-out property <[ImportRow]> import-rows;
+    in-out property <[ApplyHostRow]> apply-hosts;
+    in property <bool> dialog-confirmation;
+    in-out property <[FormField]> fields;
+    in-out property <[CandidateRow]> candidates;
+    callback navigate(int);
+    callback search(string);
+    callback select-row(string);
+    callback action(string);
+    callback toggle(string, bool);
+    callback project-toggle(string, string, bool);
+    callback project-reset(string, string);
+    callback save-host(string, string, string, string);
+    callback host-visible(string, bool);
+    callback restore-host(string);
+    callback dismiss-notice();
+    callback submit-dialog();
+    callback close-dialog();
+    callback preview-skills();
+    callback import-selection-changed();
+    HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
+            width: 214px; background: Theme.card;
+            Rectangle { x: parent.width - 2px; width: 2px; background: Theme.border; }
+            VerticalLayout {
+                padding: 22px; spacing: 10px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    Rectangle { width: 42px; height: 42px; border-radius: 8px; border-width: 2px; border-color: Theme.border; background: Theme.primary;
+                        Text { text: "C"; font-size: 27px; font-weight: 800; color: Theme.foreground; horizontal-alignment: center; vertical-alignment: center; }
+                    }
+                    Text { text: "Chu"; font-size: 30px; font-weight: 800; color: Theme.foreground; vertical-alignment: center; }
+                }
+                MutedText { text: "AGENT WORKSPACE"; font-size: 10px; }
+                Rectangle { height: 14px; }
+                for label[index] in ["总览", "项目管理", "Skills", "MCP 服务", "Providers", "自定义 Agent", "提示词", "References", "设置"]: Action {
+                    text: label; primary: root.page == index; horizontal-stretch: 1;
+                    min-height: 40px; clicked => { if !root.busy { root.navigate(index); } }
+                }
+                Rectangle { vertical-stretch: 1; }
+                MutedText { text: "RUST + SLINT\n原生桌面 · 本地优先"; font-size: 11px; }
+            }
+        }
+        VerticalLayout {
+            padding: 28px; spacing: 18px;
+            HorizontalLayout {
+                VerticalLayout { horizontal-stretch: 1; spacing: 6px;
+                    Text { text: root.page-title; font-size: 30px; font-weight: 800; color: Theme.foreground; }
+                    MutedText { text: root.page-description; font-size: 13px; }
+                }
+                Action { text: root.busy ? "处理中…" : "刷新"; enabled: !root.busy; clicked => { root.action("refresh"); } }
+            }
+            if root.notice != "": Rectangle {
+                min-height: 46px; max-height: 130px; preferred-height: notice-text.preferred-height + 24px;
+                background: root.notice-error ? Theme.error-surface : Theme.success-surface;
+                border-width: 1px; border-color: root.notice-error ? Theme.destructive : Theme.success; border-radius: 6px;
+                HorizontalLayout { padding: 12px; spacing: 10px;
+                    notice-text := Text { text: root.notice; color: root.notice-error ? Theme.destructive : Theme.foreground; wrap: word-wrap; max-height: 100px; overflow: elide; font-size: 13px; }
+                    Action { text: "关闭"; clicked => { root.dismiss-notice(); } }
+                }
+            }
+            if root.page == 0: ScrollView {
+                VerticalLayout {
+                    padding: 2px; spacing: 22px;
+                    Card { min-height: 140px;
+                        VerticalLayout { padding: 24px; spacing: 12px;
+                            Heading { text: "你的 Agent 资源，都在这里。"; font-size: 26px; }
+                            MutedText { text: "集中管理 Skills、MCP 和 Agents，保持每个宿主的原生配置与独立部署状态。"; font-size: 14px; }
+                            HorizontalLayout { spacing: 12px; alignment: start;
+                                Action { text: "安装 Skills"; primary: true; clicked => { root.navigate(2); root.action("add"); } }
+                                Action { text: "管理宿主"; clicked => { root.navigate(8); } }
+                            }
+                        }
+                    }
+                    HorizontalLayout { spacing: 16px;
+                        for item in root.counts: Card { min-height: 96px; horizontal-stretch: 1;
+                            VerticalLayout { padding: 18px; Text { text: item; font-size: 21px; font-weight: 700; color: Theme.foreground; wrap: word-wrap; } }
+                        }
+                    }
+                    Heading { text: "Agent 宿主"; }
+                    for host in root.visible-hosts: Card { min-height: 96px;
+                        HorizontalLayout { padding: 18px; spacing: 16px;
+                            VerticalLayout { horizontal-stretch: 1; spacing: 6px; Heading { text: host.name; font-size: 18px; } MutedText { text: host.config; } }
+                            Text { text: host.status; color: host.installed ? Theme.success : Theme.muted-foreground; vertical-alignment: center; }
+                            Action { text: "配置"; clicked => { root.navigate(8); } }
+                        }
+                    }
+                    MutedText { text: "中央资源库  ·  " + root.root-path; }
+                }
+            }
+            if root.page == 8: HostSettings {
+                hosts: root.hosts; busy: root.busy;
+                save(id, config, skills, agents) => { root.save-host(id, config, skills, agents); }
+                restore(id) => { root.restore-host(id); }
+                visibility-changed(id, visible) => { root.host-visible(id, visible); }
+            }
+            if root.page > 0 && root.page < 8: VerticalLayout {
+                spacing: 16px;
+                HorizontalLayout { spacing: 12px;
+                    LineEdit { text <=> root.query; placeholder-text: "搜索名称、描述、来源…"; edited(value) => { root.search(value); } }
+                    if root.page == 2 || root.page == 3: Action { text: "导入"; enabled: !root.busy; clicked => { root.action("import"); } }
+                    if root.page == 2: Action { text: "检查更新"; enabled: !root.busy; clicked => { root.action("check-updates"); } }
+                    Action { text: root.page == 1 ? "添加项目" : root.page == 2 ? "安装 Skills" : "新建"; primary: true; enabled: !root.busy; clicked => { root.action("add"); } }
+                }
+                HorizontalLayout {
+                    spacing: 20px;
+                    Card {
+                        min-width: 270px; preferred-width: 340px; horizontal-stretch: 1;
+                        VerticalLayout { padding: 12px; spacing: 10px;
+                            MutedText { text: "资源列表  ·  " + root.rows.length; }
+                            ScrollView { VerticalLayout { spacing: 10px;
+                                for row in root.rows: Rectangle {
+                                    min-height: 106px; preferred-height: 112px; max-height: 112px; vertical-stretch: 0;
+                                    border-radius: 6px; border-width: 1px; border-color: Theme.subtle-border;
+                                    background: root.selected-id == row.id ? Theme.primary-muted : Theme.card;
+                                    VerticalLayout { padding: 12px; spacing: 6px;
+                                        Action { text: row.name; primary: root.selected-id == row.id; horizontal-stretch: 1; clicked => { root.select-row(row.id); } }
+                                        MutedText { text: row.description; overflow: elide; wrap: no-wrap; }
+                                        MutedText { text: row.meta; font-size: 10px; overflow: elide; wrap: no-wrap; }
+                                    }
+                                }
+                                if root.rows.length == 0: MutedText { text: root.page == 2 || root.page == 3 ? "这里仅列出 Chu 管理的资源。\n使用上方“导入”按钮选择宿主数据，或新建资源。" : "没有匹配的资源。\n使用右上角按钮添加。"; }
+                                Rectangle { vertical-stretch: 1; }
+                            } }
+                        }
+                    }
+                    Card {
+                        min-width: 360px; horizontal-stretch: 2;
+                        VerticalLayout { padding: 20px; spacing: 10px;
+                            if root.selected-id == "": MutedText { text: "选择一项资源以查看详情与部署状态。"; }
+                            if root.selected-id != "": VerticalLayout {
+                                spacing: 10px;
+                                Heading { text: root.selected-name; }
+                                if root.selected-description != "": MutedText { text: root.selected-description; font-size: 13px; }
+                                MutedText { text: root.selected-meta; }
+                                if root.action-one != "" || root.action-two != "" || root.action-three != "": HorizontalLayout { spacing: 10px; alignment: start;
+                                    if root.action-one != "": Action { text: root.action-one; enabled: !root.busy; clicked => { root.action("one"); } }
+                                    if root.action-two != "": Action { text: root.action-two; enabled: !root.busy; clicked => { root.action("two"); } }
+                                    if root.action-three != "": Action { text: root.action-three; danger: true; enabled: !root.busy; clicked => { root.action("three"); } }
+                                }
+                                if root.deployments.length > 0: ScrollView {
+                                    preferred-height: 140px; max-height: 150px; min-height: 110px; vertical-stretch: 0;
+                                    VerticalLayout { spacing: 8px;
+                                        for dep in root.deployments: HorizontalLayout {
+                                            CheckBox { text: dep.name; checked: dep.enabled; enabled: dep.available && !root.busy; toggled => { root.toggle(dep.id, self.checked); } }
+                                            MutedText { text: dep.status; }
+                                        }
+                                    }
+                                }
+                                if root.page == 1: ScrollView {
+                                    vertical-stretch: 1;
+                                    VerticalLayout { spacing: 18px;
+                                        for skill in root.project-skills: VerticalLayout {
+                                            spacing: 6px;
+                                            Text { text: skill.name; color: Theme.foreground; font-weight: 600; }
+                                            for dep in skill.hosts: HorizontalLayout {
+                                                CheckBox { text: dep.name; checked: dep.enabled; enabled: dep.available && !root.busy; toggled => { root.project-toggle(skill.id, dep.id, self.checked); } }
+                                                MutedText { text: dep.status; }
+                                                if dep.reset: Action { text: "重置副本"; enabled: !root.busy; clicked => { root.project-reset(skill.id, dep.id); } }
+                                            }
+                                        }
+                                        if root.project-skills.length == 0: MutedText { text: "先安装或导入一个 Skill，再部署到项目。"; }
+                                    }
+                                }
+                                if root.page == 4: TextEdit { text: root.selected-models; accessible-label: "模型目录"; read-only: true; min-height: 80px; vertical-stretch: 1; }
+                                if root.page != 1 && root.page != 4: TextEdit { text: root.selected-content; accessible-label: root.selected-name + " 内容"; read-only: true; min-height: 80px; vertical-stretch: 1; }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if root.dialog-open: Rectangle {
+        background: Theme.foreground.with-alpha(0.28);
+        TouchArea { }
+        Editor {
+            x: (parent.width - self.width) / 2; y: 30px;
+            width: min(660px, parent.width - 60px); height: parent.height - 60px;
+            title: root.dialog-title; description: root.dialog-description; error: root.dialog-error;
+            busy: root.busy; installer: root.dialog-installer; importer: root.dialog-importer; import-count: root.import-count; has-apply-targets: root.has-apply-targets; confirmation: root.dialog-confirmation;
+            fields <=> root.fields; candidates <=> root.candidates; import-rows <=> root.import-rows; apply-hosts <=> root.apply-hosts;
+            cancel => { root.close-dialog(); }
+            submit => { root.submit-dialog(); }
+            preview => { root.preview-skills(); }
+            import-selection-changed => { root.import-selection-changed(); }
+        }
+    }
+}

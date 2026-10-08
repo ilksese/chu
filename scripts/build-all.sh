@@ -1,24 +1,9 @@
-#!/bin/bash
-# Build script for all platforms
-
-echo "Building for all platforms..."
-echo "================================"
-
-# Build for Windows AMD64
-echo "Building for Windows (amd64)..."
-wails build -platform windows/amd64 -clean
-
-# Build for Linux AMD64
-echo "Building for Linux (amd64)..."
-wails build -platform linux/amd64 -clean
-
-# Build for macOS ARM64 (Apple Silicon)
-echo "Building for macOS (arm64)..."
-wails build -platform darwin/arm64 -clean
-
-# Build for macOS AMD64 (Intel)
-echo "Building for macOS (amd64)..."
-wails build -platform darwin/amd64 -clean
-
-echo "================================"
-echo "Build complete! Check build/bin/ directory"
+#!/usr/bin/env bash
+set -euo pipefail
+# Cross compilation requires each target's Rust toolchain, linker and platform SDK.
+# Run targets on their native OS in CI instead of pretending a failed cross-build succeeded.
+if [[ $# -eq 0 ]]; then
+  printf 'Usage: %s <rust-target> [rust-target ...]\nExample: %s aarch64-apple-darwin x86_64-apple-darwin\n' "$0" "$0"
+  exit 2
+fi
+for target in "$@"; do "$(dirname "$0")/build.sh" "$target"; done

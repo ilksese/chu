@@ -1,49 +1,27 @@
 # Product
 
-<!-- impeccable:product-schema 1 -->
+## 平台与用户
 
-## Platform
+Chu 是 Rust + Slint 原生桌面应用，面向同时使用多个本地 AI 编程宿主的开发者。窗口最小 `1080×680`，只提供浅色桌面布局。
 
-web
+## 产品目标
 
-## Users
+以一个本地控制面管理 Skills、MCP、自定义 Agent、提示词、References、Providers 和项目部署；集中资源管理，但保留每个宿主的原生配置格式与独立启用状态。
 
-Primary users are local developers managing AI coding-agent resources across multiple installed hosts.
+## 核心流程
 
-## Product Purpose
+- Skills/MCP 默认列表只显示 Chu 管理的数据；宿主资源必须通过多选导入显式纳入管理，可立即应用到多个目标宿主。
+- Skill 来源支持 Git 仓库、预览、安装、来源追踪与更新；项目使用独立副本并识别修改、缺失和冲突。
+- MCP 支持 stdio/http/sse、凭证与原生 JSON/TOML 配置；jcode 仅支持 stdio。
+- Agent 和 Markdown 资源可创建、编辑与分发；提示词切换保留原始备份。
+- Provider 模型目录来自真实 HTTP 请求；错误保留缓存，不通过重定向转发凭证。
+- 设置支持宿主发现、路径配置、可见性偏好和备份恢复。
 
-Chu provides one local control plane for discovering, installing, importing, configuring, testing, and deploying Skills, MCP services, and custom Agents. Success means users can understand deployment state and make host-specific changes without manually editing each host configuration.
+## 约束与承诺
 
-## Positioning
-
-Chu keeps a central local resource store while preserving independent deployment state and native configuration formats for OpenCode, Claude Code, and Codex.
-
-## Operating Context
-
-Users work in a desktop application alongside local coding-agent tools. Primary workflows include browsing resources, installing or creating entries, enabling them per host, testing MCP configurations, resolving imported resources, and maintaining host paths or backups.
-
-## Capabilities and Constraints
-
-- Existing installation, import, deployment toggle, MCP test, path editing, refresh, and backup restoration behavior must remain intact.
-- The home view is the primary browsing and navigation surface for Skills, MCP services, and Agents.
-- Wails provides the desktop shell and Go backend; React, Vite, TypeScript, Tailwind CSS, and Magic UI provide the frontend.
-- The interface is light-theme only.
-
-## Brand Commitments
-
-The product name is Chu. The binding visual authority is `DESIGN.md`: an energetic neo-brutalist SaaS language using warm white surfaces, electric-yellow accents, black outlines, restrained hard shadows, and red only for danger or error states.
-
-## Evidence on Hand
-
-The repository contains working frontend flows, a Wails backend, demo data, and the Chu logo asset. No customer claims, benchmarks, or commercial proof should be invented.
-
-## Product Principles
-
-- Keep local resource state legible at a glance.
-- Preserve host independence while centralizing resource management.
-- Make consequential configuration changes explicit and reversible.
-- Favor direct manipulation and short paths over explanatory chrome.
-
-## Accessibility & Inclusion
-
-All primary workflows must remain keyboard operable, expose clear accessible names and states, retain visible focus, and respect reduced-motion preferences.
+- 所有写入显式、可追踪，禁止静默覆盖用户本地修改；批量导入失败回滚。
+- 保留既有中央状态、锁文件、配置、凭证和哈希格式的兼容，技术栈清理不能损失用户数据。
+- 业务与界面均为原生 Rust/Slint；主题、图标、打包和验证都由原生项目维护。
+- 主要操作一次点击、可键盘访问、有可见焦点和准确的无障碍状态。
+- 视觉权威为 `DESIGN.md` 与 `ui/theme.slint`；黄色仅强调，危险/错误单独表达。
+- 不虚构用户评价、业绩、性能或跨平台实机验证结果。

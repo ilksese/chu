@@ -1,0 +1,87 @@
+import { ScrollView, LineEdit, TextEdit, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Card, Heading, MutedText, FormField, CandidateRow, ImportRow, ApplyHostRow } from "components.slint";
+export component Editor inherits Card {
+    in property <string> title;
+    in property <string> description;
+    in property <string> error;
+    in property <bool> busy;
+    in property <bool> installer;
+    in property <bool> importer;
+    in property <int> import-count;
+    in property <bool> has-apply-targets;
+    in-out property <[ImportRow]> import-rows;
+    in-out property <[ApplyHostRow]> apply-hosts;
+    in property <bool> confirmation;
+    in-out property <[FormField]> fields;
+    in-out property <[CandidateRow]> candidates;
+    callback cancel();
+    callback submit();
+    callback preview();
+    callback import-selection-changed();
+    preferred-width: 660px;
+    forward-focus: focus;
+    focus := FocusScope {
+        init => { self.focus(); }
+        key-pressed(event) => { if event.text == Key.Escape && !root.busy { root.cancel(); return accept; } return reject; }
+    VerticalLayout {
+        padding: 24px; spacing: 16px;
+        HorizontalLayout { Heading { text: root.title; horizontal-stretch: 1; } Action { text: "关闭"; enabled: !root.busy; clicked => { root.cancel(); } } }
+        MutedText { text: root.description; }
+        if root.error != "": Text { text: root.error; color: Theme.destructive; wrap: word-wrap; max-height: 80px; overflow: elide; font-size: 13px; }
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                spacing: 14px; padding-right: 8px;
+                for field in root.fields: VerticalLayout {
+                    spacing: 6px;
+                    if field.kind != 2: Text { text: field.label; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+                    if field.kind == 0 || field.kind == 4: LineEdit {
+                        accessible-label: field.label; text <=> field.value; placeholder-text: field.placeholder;
+                        input-type: field.kind == 4 ? password : text;
+                        enabled: !root.busy;
+                    }
+                    if field.kind == 1: TextEdit { accessible-label: field.label; text <=> field.value; min-height: 120px; preferred-height: 180px; enabled: !root.busy; }
+                    if field.kind == 2: CheckBox { text: field.label; checked: field.value == "true"; enabled: !root.busy; toggled => { field.value = self.checked ? "true" : "false"; } }
+                }
+                if root.importer && root.import-rows.length == 0: MutedText { text: root.busy ? "正在扫描宿主资源…" : "没有发现可导入的资源。可以重新扫描，或检查设置中的宿主路径。"; }
+                for item in root.import-rows: Card {
+                    vertical-stretch: 0; min-height: 76px;
+                    VerticalLayout { padding: 12px; spacing: 5px;
+                        CheckBox { text: item.name; checked <=> item.checked; enabled: item.available && !root.busy; toggled => { root.import-selection-changed(); } }
+                        if item.description != "": MutedText { text: item.description; }
+                        MutedText { text: item.source; font-size: 11px; }
+                        if item.reason != "": MutedText { text: item.reason; }
+                    }
+                }
+                for candidate in root.candidates: Card {
+                    min-height: 72px; vertical-stretch: 0;
+                    VerticalLayout { padding: 10px; spacing: 4px;
+                        CheckBox { text: candidate.name + (candidate.installed ? " · 已安装" : ""); checked <=> candidate.checked; enabled: !candidate.installed && !root.busy; }
+                        MutedText { text: candidate.description + "\n" + candidate.path; }
+                    }
+                }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+        if root.importer: VerticalLayout {
+            spacing: 8px;
+            Text { text: "导入后立即应用到"; color: Theme.foreground; font-size: 14px; font-weight: 600; }
+            HorizontalLayout { spacing: 12px; alignment: start;
+                for host in root.apply-hosts: VerticalLayout { spacing: 4px;
+                    CheckBox { text: host.name; accessible-label: "立即应用到 " + host.name; checked <=> host.checked; enabled: host.available && !root.busy; toggled => { root.import-selection-changed(); } }
+                    if host.reason != "": MutedText { text: host.reason; font-size: 10px; }
+                }
+            }
+            MutedText { text: "已选择 " + root.import-count + " 项。未勾选宿主时仅导入 Chu；原宿主数据不会被移除。"; font-size: 11px; }
+        }
+        HorizontalLayout {
+            alignment: end; spacing: 10px;
+            if root.importer: Action { text: "重新扫描"; enabled: !root.busy; clicked => { root.preview(); } }
+            if root.installer: Action { text: "预览仓库"; enabled: !root.busy; clicked => { root.preview(); } }
+            Action { text: "取消"; enabled: !root.busy; clicked => { root.cancel(); } }
+            Action { text: root.busy ? "处理中…" : root.importer ? (root.has-apply-targets ? "导入并应用" : "导入到 Chu") : root.installer ? "安装所选" : root.confirmation ? "确认操作" : "保存"; primary: !root.confirmation; danger: root.confirmation; enabled: !root.busy && (!root.importer || root.import-count > 0); clicked => { root.submit(); } }
+        }
+    }
+    }
+}

@@ -1,6 +1,3 @@
-#!/bin/bash
-# Build for Windows (AMD64)
-
-echo "Building for Windows (amd64)..."
-wails build -platform windows/amd64 -clean
-echo "Build complete! Check build/bin/"
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$(dirname "$0")/build.sh" x86_64-pc-windows-msvc

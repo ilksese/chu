@@ -1,0 +1,31 @@
+pub mod agents;
+pub mod app;
+pub mod credentials;
+pub mod fs;
+pub mod hosts;
+pub mod mcp;
+pub mod models;
+pub mod projects;
+pub mod prompts;
+pub mod providers;
+pub mod references;
+pub mod skills;
+pub mod sources;
+
+pub use app::App;
+pub use models::*;
+
+mod actions;
+mod callbacks;
+pub mod controller;
+mod dotenv;
+pub mod editor;
+mod import_dialog;
+mod import_scan;
+mod import_transaction;
+pub mod imports;
+mod mcp_native;
+pub mod presenter;
+pub mod search;
+mod skill_sources;
+pub mod ui;
