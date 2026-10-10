@@ -1,9 +1,9 @@
-//! Typed dialog-to-command conversion. Secrets exist only in draft fields and the worker request.
+//! 将表单转换为类型化命令；秘密仅存在于当前草稿和后台请求中。
 use crate::{
     presenter::{ViewState, model},
     ui::{AppWindow, FormField},
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde_json::{Value, json};
 use slint::Model;
 #[derive(Clone, Default)]
@@ -11,6 +11,27 @@ pub struct Dialog {
     pub method: String,
     pub id: String,
     pub args: Value,
+    pub generation: u64,
+    pub loaded: bool,
+    pub baseline: Value,
+    pub version: Option<String>,
+    pub preview_token: String,
+    pub preview_source: String,
+}
+impl Dialog {
+    pub fn dirty(&self, ui: &AppWindow) -> bool {
+        !ui.get_dialog_confirmation()
+            && !ui.get_dialog_installer()
+            && !ui.get_dialog_importer()
+            && self.loaded
+            && self.baseline != draft(ui)
+    }
+    pub fn rebase(&mut self, ui: &AppWindow) {
+        self.baseline = draft(ui);
+    }
+}
+pub fn draft(ui: &AppWindow) -> Value {
+    json!({"fields": values(ui), "mcp": crate::editor_mcp::draft(ui)})
 }
 fn field(key: &str, label: &str, value: &str, kind: i32, placeholder: &str) -> FormField {
     FormField {
@@ -24,6 +45,27 @@ fn field(key: &str, label: &str, value: &str, kind: i32, placeholder: &str) -> F
 pub fn open(ui: &AppWindow, state: &ViewState, method: &str, id: &str, args: Value) -> Dialog {
     ui.set_dialog_error("".into());
     ui.set_dialog_open(true);
+    ui.set_dialog_load_state(0);
+    ui.set_dialog_discard_open(false);
+    ui.set_dialog_short(matches!(
+        method,
+        "RenameProject"
+            | "DeleteProject"
+            | "DeleteSkill"
+            | "DeleteMCP"
+            | "DeleteAgent"
+            | "DeletePrompt"
+            | "DeleteReference"
+            | "DeleteProvider"
+            | "RestoreBackup"
+            | "ResetProjectSkill"
+    ));
+    ui.set_dialog_mcp(matches!(method, "AddMCP" | "UpdateMCP"));
+    ui.set_import_query("".into());
+    ui.set_import_host_filter(0);
+    ui.set_import_conflict("".into());
+    ui.set_import_compatibility("".into());
+    crate::editor_mcp::reset(ui);
     ui.set_dialog_installer(false);
     ui.set_dialog_importer(false);
     ui.set_import_rows(model(Vec::new()));
@@ -72,10 +114,11 @@ pub fn open(ui: &AppWindow, state: &ViewState, method: &str, id: &str, args: Val
             ));
         }
         "CreatePrompt" | "UpdatePrompt" | "CreateReference" | "UpdateReference" => {
-            title = if method.contains("Prompt") {
-                "编辑提示词"
-            } else {
-                "编辑 Reference"
+            title = match method {
+                "CreatePrompt" => "新建提示词",
+                "UpdatePrompt" => "编辑提示词",
+                "CreateReference" => "新建 Reference",
+                _ => "编辑 Reference",
             };
             let name = if method.contains("Prompt") {
                 state
@@ -103,24 +146,25 @@ pub fn open(ui: &AppWindow, state: &ViewState, method: &str, id: &str, args: Val
                 field("content", "Markdown 内容", content, 1, ""),
             ]);
         }
-        "AddMCP" => {
-            title = "新建 MCP 服务";
-            description =
-                "args 使用 JSON 数组；env、headers 使用 JSON 对象。远程地址必须为 HTTPS。";
+        "AddMCP" | "UpdateMCP" => {
+            title = if method == "AddMCP" {
+                "新建 MCP 服务"
+            } else {
+                "编辑 MCP 服务"
+            };
+            description = "保存会同步全部已启用宿主；检测到外部修改或不兼容时整项拒绝。已有秘密默认保持，不回填明文。";
             fields.extend([
                 field("name", "名称", "", 0, ""),
                 field("description", "描述", "", 0, ""),
-                field("type", "类型", "stdio", 0, "stdio / http / sse"),
-                field("endpoint", "服务地址", "", 0, "https://…"),
-                field("command", "启动命令", "", 0, "npx -y …"),
-                field("args", "参数（JSON 数组）", "[]", 0, ""),
-                field("env", "环境变量（JSON 对象）", "{}", 1, ""),
-                field("headers", "请求头（JSON 对象）", "{}", 1, ""),
-                field("secret", "访问令牌（可选）", "", 4, ""),
             ]);
         }
-        "AddAgent" => {
-            title = "新建自定义 Agent";
+        "AddAgent" | "UpdateAgent" => {
+            title = if method == "AddAgent" {
+                "新建自定义 Agent"
+            } else {
+                "编辑自定义 Agent"
+            };
+            description = "保存会同步全部已启用宿主；中央文件或宿主副本已被外部修改时整项拒绝。";
             fields.extend([
                 field("name", "名称", "", 0, ""),
                 field("description", "描述", "", 0, ""),
@@ -129,7 +173,11 @@ pub fn open(ui: &AppWindow, state: &ViewState, method: &str, id: &str, args: Val
             ]);
         }
         "CreateProvider" | "UpdateProvider" => {
-            title = "编辑供应商";
+            title = if method == "CreateProvider" {
+                "新建供应商"
+            } else {
+                "编辑供应商"
+            };
             description =
                 "API Key 不写入状态或快照。编辑时留空保留现有凭证；模型请求不跟随重定向。";
             let p = state.snapshot.providers.iter().find(|p| p.id == id);
@@ -205,10 +253,18 @@ pub fn open(ui: &AppWindow, state: &ViewState, method: &str, id: &str, args: Val
     ui.set_dialog_title(title.into());
     ui.set_dialog_description(description.into());
     ui.set_fields(model(fields));
+    if ui.get_dialog_confirmation() {
+        crate::confirmation::describe(ui, state, method, id, &args);
+    }
     Dialog {
         method: method.into(),
         id: id.into(),
         args,
+        loaded: !matches!(
+            method,
+            "UpdatePrompt" | "UpdateReference" | "UpdateMCP" | "UpdateAgent"
+        ),
+        ..Dialog::default()
     }
 }
 pub fn values(ui: &AppWindow) -> std::collections::BTreeMap<String, String> {
@@ -218,9 +274,16 @@ pub fn values(ui: &AppWindow) -> std::collections::BTreeMap<String, String> {
         .collect()
 }
 pub fn command(ui: &AppWindow, dialog: &Dialog) -> Result<(String, Value)> {
+    if !dialog.loaded {
+        anyhow::bail!("原始内容尚未成功加载，请先重试读取。");
+    }
     let values = values(ui);
     let get = |key: &str| values.get(key).map(String::as_str).unwrap_or("");
-    let method = dialog.method.clone();
+    let method = if dialog.method == "InstallSkills" {
+        "InstallSkillsFromPreview".into()
+    } else {
+        dialog.method.clone()
+    };
     let id = &dialog.id;
     let args = match method.as_str() {
         "ImportHostResources" => {
@@ -241,31 +304,33 @@ pub fn command(ui: &AppWindow, dialog: &Dialog) -> Result<(String, Value)> {
             }
             json!([id, selected, hosts])
         }
-        "InstallSkills" => {
+        "InstallSkillsFromPreview" => {
+            if dialog.preview_token.is_empty() || get("repository") != dialog.preview_source {
+                anyhow::bail!("来源已改变或尚未预览，请重新预览仓库。");
+            }
             let paths: Vec<_> = ui
                 .get_candidates()
                 .iter()
                 .filter(|c| c.checked && !c.installed)
                 .map(|c| c.path.to_string())
                 .collect();
-            json!([get("repository"), paths])
+            if paths.is_empty() {
+                anyhow::bail!("请至少选择一个未安装的 Skill。");
+            }
+            json!([dialog.preview_token, paths])
         }
         "CreatePrompt" | "CreateReference" => json!([get("name"), get("content")]),
         "UpdatePrompt" | "UpdateReference" => json!([id, get("name"), get("content")]),
         "RenameProject" => json!([id, get("name")]),
         "DeleteProject" => json!([id, get("cleanup") == "true"]),
-        "AddMCP" => {
-            let args: Vec<String> =
-                serde_json::from_str(get("args")).context("参数必须是字符串 JSON 数组")?;
-            let env: crate::models::Map<String> =
-                serde_json::from_str(get("env")).context("环境变量必须是字符串 JSON 对象")?;
-            let headers: crate::models::Map<String> =
-                serde_json::from_str(get("headers")).context("请求头必须是字符串 JSON 对象")?;
-            json!([{"name":get("name"),"description":get("description"),"type":get("type"),"endpoint":get("endpoint"),"command":get("command"),"args":args,"env":env,"headers":headers,"secret":get("secret")}])
-        }
+        "AddMCP" | "UpdateMCP" => return crate::editor_mcp::command(ui, dialog, &values),
         "AddAgent" => {
             json!([{"name":get("name"),"description":get("description"),"prompt":get("prompt"),"model":get("model")}])
         }
+        "UpdateAgent" => {
+            json!([id, {"version":dialog.version,"input":{"name":get("name"),"description":get("description"),"prompt":get("prompt"),"model":get("model")}}])
+        }
+        "DeleteMCP" | "DeleteAgent" => json!([id, {"version":dialog.version}]),
         "CreateProvider" | "UpdateProvider" => {
             let input = json!({"name":get("name"),"baseUrl":get("baseUrl"),"envApiKey":get("envApiKey"),"apiKey":get("apiKey")});
             if method == "UpdateProvider" {

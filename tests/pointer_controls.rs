@@ -174,7 +174,7 @@ fn dialog_buttons_preview_install_and_confirmation_activate_on_first_click() {
     click(&ui, "保存");
     assert_eq!(submitted.get(), 1);
     click(&ui, "取消");
-    click(&ui, "关闭");
+    click(&ui, "关闭编辑窗口");
     assert_eq!(closed.get(), 2);
     ui.set_dialog_installer(true);
     click(&ui, "预览仓库");
@@ -197,10 +197,10 @@ fn deployment_checkboxes_toggle_with_one_click_when_focus_moves() {
     let toggles = Rc::new(RefCell::new(Vec::new()));
     let output = toggles.clone();
     ui.on_toggle(move |id, enabled| output.borrow_mut().push((id.to_string(), enabled)));
-    click(&ui, "Claude Code");
+    click(&ui, "Claude Code 部署");
     assert_eq!(*toggles.borrow(), vec![("claude".into(), true)]);
     click(&ui, "刷新");
-    click(&ui, "Claude Code");
+    click(&ui, "Claude Code 部署");
     assert_eq!(toggles.borrow().len(), 2);
     assert_eq!(toggles.borrow()[1], ("claude".into(), false));
 }
@@ -209,6 +209,14 @@ fn project_checkbox_and_reset_button_activate_with_one_click() {
     let ui = window();
     ui.set_page(1);
     ui.set_selected_id("project".into());
+    ui.set_hosts(model(vec![HostRow {
+        id: "claude".into(),
+        name: "Claude Code".into(),
+        installed: true,
+        visible: true,
+        ..Default::default()
+    }]));
+    ui.set_visible_hosts(ui.get_hosts());
     ui.set_project_skills(model(vec![ProjectSkillRow {
         id: "tdd".into(),
         name: "Test driven".into(),
@@ -227,12 +235,12 @@ fn project_checkbox_and_reset_button_activate_with_one_click() {
     let resets = Rc::new(Cell::new(0));
     let output = resets.clone();
     ui.on_project_reset(move |_, _| output.set(output.get() + 1));
-    click(&ui, "Claude Code");
+    click(&ui, "Test driven · Claude Code 部署");
     assert_eq!(
         *toggles.borrow(),
         vec![("tdd".into(), "claude".into(), true)]
     );
-    click(&ui, "重置副本");
+    click(&ui, "重置 Test driven · Claude Code 副本");
     assert_eq!(resets.get(), 1);
 }
 #[test]
@@ -311,11 +319,11 @@ fn settings_visibility_save_and_restore_each_take_one_click() {
     let restored = Rc::new(Cell::new(0));
     let output = restored.clone();
     ui.on_restore_host(move |_| output.set(output.get() + 1));
-    click(&ui, "在界面中显示");
+    click(&ui, "在界面中显示 Claude Code");
     assert_eq!(*visibility.borrow(), vec![("claude".into(), false)]);
-    click(&ui, "保存路径");
+    click(&ui, "保存 Claude Code 路径");
     assert_eq!(saves.get(), 1);
-    click(&ui, "恢复配置备份");
+    click(&ui, "恢复 Claude Code 配置备份");
     assert_eq!(restored.get(), 1);
 }
 #[test]

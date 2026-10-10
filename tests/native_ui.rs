@@ -97,7 +97,7 @@ fn native_pages_and_dialogs_use_the_real_worker() {
             0 => {
                 assert!(!ui.get_dialog_open());
                 assert_eq!(ui.get_rows().row_count(), 1);
-                click(&ui, "Claude Code");
+                click(&ui, "Claude Code 部署");
                 state.set(1);
             }
             1 => {
@@ -180,12 +180,13 @@ fn native_pages_and_dialogs_use_the_real_worker() {
                 if !ui.get_selected_content().contains("Native agent content") {
                     return;
                 }
-                let body = ElementHandle::find_by_element_type_name(&ui, "TextEdit")
+                click(&ui, "Markdown 源码");
+                let body = ElementHandle::find_by_accessible_label(&ui, "native-agent 内容")
                     .find(|e| {
                         e.accessible_value()
                             .is_some_and(|v| v.contains("Native agent content"))
                     })
-                    .expect("agent body is visible");
+                    .expect("agent source body is visible");
                 assert!(
                     body.size().height >= 80.,
                     "native detail body must remain readable at minimum window size"
@@ -260,7 +261,7 @@ fn native_pages_and_dialogs_use_the_real_worker() {
             }
             10 => {
                 assert_eq!(ui.get_selected_name(), "native-mcp");
-                click(&ui, "Claude Code");
+                click(&ui, "Claude Code 部署");
                 state.set(11);
             }
             11 => {
@@ -269,7 +270,7 @@ fn native_pages_and_dialogs_use_the_real_worker() {
                         .iter()
                         .any(|d| d.id == "claude" && d.enabled)
                 );
-                click(&ui, &ui.get_action_one());
+                click(&ui, &ui.get_action_two());
                 state.set(12);
             }
             12 => {
@@ -358,6 +359,14 @@ fn fill_draft(ui: &AppWindow, values: &[(&str, &str)]) {
         }
     }
     ui.set_fields(model(fields));
+    for (key, value) in values {
+        if *key == "command" {
+            ui.set_mcp_command((*value).into());
+        }
+        if *key == "endpoint" {
+            ui.set_mcp_endpoint((*value).into());
+        }
+    }
 }
 
 fn click(ui: &AppWindow, label: &str) {

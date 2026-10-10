@@ -1,0 +1,70 @@
+import { ScrollView, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, MutedText, SingleLine, HostRow, ProjectSkillRow } from "components.slint";
+
+export component ProjectMatrix inherits Rectangle {
+    in property <[ProjectSkillRow]> skills;
+    in property <[HostRow]> hosts;
+    in property <bool> interactive;
+    in property <bool> writable;
+    in property <int> focus-request;
+    property <string> reset-owner;
+    in-out property <length> scroll-y;
+    callback toggle(string, string, bool);
+    callback reset(string, string);
+    min-height: 100px;
+    accessible-role: groupbox; accessible-label: "项目部署表格";
+    VerticalLayout {
+        spacing: 6px;
+        Text { text: "项目 Skills × 宿主"; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+        MutedText { text: "勾选会立即部署或移除副本。表格可横向滚动，重置不会隐藏在窗口外。"; font-size: 11px; }
+        matrix-scroll := ScrollView {
+            enabled: root.interactive; content-y <=> root.scroll-y;
+            horizontal-scrollbar-policy: as-needed; vertical-scrollbar-policy: as-needed;
+            content-width: max(self.visible-width, 172px + root.hosts.length * 184px);
+            VerticalLayout {
+                spacing: 0px; width: matrix-scroll.content-width;
+                HorizontalLayout {
+                    spacing: 0px;
+                    Rectangle {
+                        width: 172px; height: 40px; background: Theme.muted;
+                        VerticalLayout { padding: 10px; Text { text: "Skill"; color: Theme.foreground; font-size: 12px; font-weight: 600; } }
+                    }
+                    for host in root.hosts: Rectangle {
+                        width: 184px; height: 40px; background: Theme.muted;
+                        VerticalLayout { padding: 10px; SingleLine { text: host.name; color: Theme.foreground; font-weight: 600; } }
+                    }
+                }
+                for skill in root.skills: HorizontalLayout {
+                    spacing: 0px;
+                    Rectangle {
+                        width: 172px; min-height: 84px; border-width: 1px; border-color: Theme.subtle-border;
+                        VerticalLayout { padding: 10px; Text { text: skill.name; color: Theme.foreground; font-size: 12px; font-weight: 600; wrap: word-wrap; } }
+                    }
+                    // 投影按宿主 id 对齐列，不依赖 map 的迭代顺序。
+                    for dep in skill.hosts: Rectangle {
+                        width: 184px; min-height: 84px; border-width: 1px; border-color: Theme.subtle-border;
+                        VerticalLayout {
+                            padding: 8px; spacing: 4px; alignment: start;
+                            CheckBox {
+                                text: dep.enabled ? "已部署" : "未部署";
+                                accessible-label: skill.name + " · " + dep.name + " 部署";
+                                checked: dep.enabled; enabled: dep.available && root.writable;
+                                toggled => { root.toggle(skill.id, dep.id, self.checked); }
+                            }
+                            if dep.status != "" && dep.status != (dep.enabled ? "已部署" : "未部署"): SingleLine { text: dep.status; font-size: 10px; }
+                            if dep.reset: Action {
+                                text: "重置副本"; accessible-name: "重置 " + skill.name + " · " + dep.name + " 副本";
+                                compact: true; enabled: root.writable;
+                                focus-request: root.reset-owner == skill.id + ":" + dep.id ? root.focus-request : 0;
+                                clicked => { root.reset-owner = skill.id + ":" + dep.id; root.reset(skill.id, dep.id); }
+                            }
+                        }
+                    }
+                }
+                if root.skills.length == 0: MutedText { text: "先安装或导入一个 Skill，再部署到项目。"; }
+                Rectangle { vertical-stretch: 1; }
+            }
+        }
+    }
+}

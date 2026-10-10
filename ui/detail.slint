@@ -1,0 +1,121 @@
+import { ScrollView, TextEdit, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Card, Heading, MutedText, SingleLine, HostToggle, HostRow, ProjectSkillRow, MarkdownBlock } from "components.slint";
+import { MarkdownPane } from "markdown.slint";
+import { ProjectMatrix } from "project-matrix.slint";
+
+export component ResourceDetail inherits Card {
+    in property <int> page;
+    in property <string> selected-id;
+    in property <string> selected-name;
+    in property <string> description;
+    in property <string> meta;
+    in property <string> content;
+    in property <string> models;
+    in property <[HostToggle]> deployments;
+    in property <[ProjectSkillRow]> project-skills;
+    in property <[HostRow]> hosts;
+    in property <string> action-one;
+    in property <string> action-two;
+    in property <string> action-three;
+    in property <bool> interactive;
+    in property <bool> writable;
+    in-out property <length> scroll-y;
+    in property <int> load-state;
+    in property <string> error;
+    in property <[MarkdownBlock]> markdown-blocks;
+    in-out property <bool> source;
+    in-out property <string> focus-owner;
+    in property <int> focus-request;
+    callback action(string);
+    callback toggle(string, bool);
+    callback project-toggle(string, string, bool);
+    callback project-reset(string, string);
+    callback copy-text(string);
+    callback copy-code(string);
+    callback copy-uri(string);
+    callback retry();
+    VerticalLayout {
+        padding: 18px; spacing: 10px;
+        if root.selected-id == "": MutedText { text: "选择一项资源，查看内容与部署状态。"; }
+        if root.selected-id != "": VerticalLayout {
+            spacing: 10px;
+            Heading { text: root.selected-name; }
+            if root.description != "": Text {
+                text: root.description; color: Theme.muted-foreground; font-size: 12px;
+                wrap: word-wrap; overflow: elide; max-height: 34px; vertical-stretch: 0;
+            }
+            if root.meta != "": HorizontalLayout {
+                spacing: 8px;
+                SingleLine { text: root.meta; font-size: 11px; horizontal-stretch: 1; }
+                Action { text: "复制"; accessible-name: "复制 " + root.selected-name + " 路径与元数据"; compact: true; enabled: root.interactive; clicked => { root.copy-text(root.meta); } }
+            }
+            if root.action-one != "" || root.action-two != "" || root.action-three != "": HorizontalLayout {
+                spacing: 8px; alignment: start;
+                if root.action-one != "": Action {
+                    text: root.action-one; enabled: root.writable;
+                    focus-request: root.focus-owner == "one" ? root.focus-request : 0;
+                    clicked => { root.focus-owner = "one"; root.action("one"); }
+                }
+                if root.action-two != "": Action {
+                    text: root.action-two; enabled: root.writable;
+                    focus-request: root.focus-owner == "two" ? root.focus-request : 0;
+                    clicked => { root.focus-owner = "two"; root.action("two"); }
+                }
+                if root.action-three != "": Action {
+                    text: root.action-three; danger: true; enabled: root.writable;
+                    focus-request: root.focus-owner == "three" ? root.focus-request : 0;
+                    clicked => { root.focus-owner = "three"; root.action("three"); }
+                }
+            }
+            if root.deployments.length > 0: VerticalLayout {
+                spacing: 4px; vertical-stretch: 0;
+                Text { text: "宿主部署"; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+                SingleLine { text: "勾选或取消会立即写入宿主原生配置。"; font-size: 11px; }
+                ScrollView {
+                    enabled: root.interactive; horizontal-scrollbar-policy: always-off;
+                    preferred-height: min(104px, root.deployments.length * 30px + 4px);
+                    max-height: 104px; min-height: 34px; vertical-stretch: 0;
+                    VerticalLayout {
+                        spacing: 4px;
+                        for dep in root.deployments: HorizontalLayout {
+                            spacing: 8px;
+                            CheckBox {
+                                text: dep.name; accessible-label: dep.name + " 部署";
+                                checked: dep.enabled; enabled: dep.available && root.writable;
+                                toggled => { root.toggle(dep.id, self.checked); }
+                            }
+                            SingleLine { text: dep.status; font-size: 11px; horizontal-stretch: 1; }
+                        }
+                    }
+                }
+            }
+            if root.load-state == 1: MutedText { text: "正在读取预览…"; }
+            if root.load-state == 2: VerticalLayout {
+                spacing: 8px;
+                Text { text: root.error != "" ? root.error : "内容读取失败。"; color: Theme.destructive; wrap: word-wrap; font-size: 13px; max-height: 64px; overflow: elide; }
+                Action { text: "重试读取"; enabled: root.interactive; clicked => { root.retry(); } }
+            }
+            if root.page == 1: ProjectMatrix {
+                skills: root.project-skills; hosts: root.hosts; interactive: root.interactive; writable: root.writable;
+                scroll-y <=> root.scroll-y;
+                focus-request: root.focus-owner == "project-reset" ? root.focus-request : 0;
+                toggle(skill, host, enabled) => { root.project-toggle(skill, host, enabled); }
+                reset(skill, host) => { root.focus-owner = "project-reset"; root.project-reset(skill, host); }
+            }
+            if root.page == 4: TextEdit {
+                text: root.models; accessible-label: "模型目录"; read-only: true;
+                enabled: root.interactive; min-height: 100px; vertical-stretch: 1;
+                content-y <=> root.scroll-y;
+            }
+            if root.page != 1 && root.page != 4: MarkdownPane {
+                name: root.selected-name; raw: root.content; blocks: root.markdown-blocks;
+                interactive: root.interactive; source <=> root.source; scroll-y <=> root.scroll-y;
+                min-height: 100px; vertical-stretch: 1;
+                copy-text(value) => { root.copy-text(value); }
+                copy-code(value) => { root.copy-code(value); }
+                copy-uri(value) => { root.copy-uri(value); }
+            }
+        }
+    }
+}

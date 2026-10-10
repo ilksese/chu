@@ -1,14 +1,20 @@
 import { Theme } from "theme.slint";
+
 export component Action inherits Rectangle {
     in property <string> text;
+    in property <string> accessible-name: root.text;
     in property <bool> primary: false;
     in property <bool> danger: false;
     in property <bool> enabled: true;
+    in property <bool> compact: false;
+    in property <int> focus-request;
+    property <int> applied-focus-request;
+    out property <bool> has-focus: focus.has-focus;
     callback clicked();
-    min-width: 76px;
+    min-width: root.compact ? 36px : 76px;
     min-height: 36px;
     max-height: self.min-height;
-    preferred-width: max(76px, label.preferred-width + 28px);
+    preferred-width: max(root.compact ? 36px : 76px, label.preferred-width + (root.compact ? 16px : 28px));
     preferred-height: 36px;
     vertical-stretch: 0;
     horizontal-stretch: 0;
@@ -19,32 +25,61 @@ export component Action inherits Rectangle {
     opacity: root.enabled ? 1 : 0.45;
     forward-focus: focus;
     accessible-role: button;
-    accessible-label: root.text;
+    accessible-label: root.accessible-name;
     accessible-enabled: root.enabled;
-    accessible-action-default => { if root.enabled { root.clicked(); } }
-    label := Text { text: root.text; color: root.danger ? Theme.destructive : Theme.foreground; font-size: 13px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; overflow: elide; wrap: no-wrap; }
+    accessible-action-default => { if root.enabled { focus.focus(); root.clicked(); } }
+    function apply-focus-request() {
+        if root.enabled && root.focus-request > root.applied-focus-request {
+            root.applied-focus-request = root.focus-request;
+            focus.focus();
+        }
+    }
+    changed focus-request => { root.apply-focus-request(); }
+    changed enabled => { root.apply-focus-request(); }
+    label := Text {
+        text: root.text; color: root.danger ? Theme.destructive : Theme.foreground;
+        font-size: 13px; font-weight: 600; horizontal-alignment: center;
+        vertical-alignment: center; overflow: elide; wrap: no-wrap;
+    }
     touch := TouchArea { enabled: root.enabled; clicked => { focus.focus(); root.clicked(); } }
     focus := FocusScope {
-        // Keyboard target only: a full-size sibling would cover TouchArea and
-        // consume the first pointer press to acquire focus instead of clicking.
+        // 只承接键盘，零尺寸目标不能覆盖鼠标命中区域。
         x: 0px; y: 0px; width: 0px; height: 0px;
         enabled: root.enabled;
-        key-pressed(event) => { if event.text == Key.Return || event.text == Key.Space { root.clicked(); return accept; } return reject; }
+        key-pressed(event) => {
+            if root.enabled && (event.text == Key.Return || event.text == Key.Space) {
+                root.clicked(); return accept;
+            }
+            return reject;
+        }
     }
 }
+
 export component Card inherits Rectangle {
     background: Theme.card;
     border-width: 2px; border-color: Theme.border; border-radius: 10px;
     @children
 }
-export component MutedText inherits Text { color: Theme.muted-foreground; font-size: 12px; wrap: word-wrap; }
-export component Heading inherits Text { overflow: elide; wrap: no-wrap; color: Theme.foreground; font-size: 20px; font-weight: 700; }
+export component MutedText inherits Text {
+    color: Theme.muted-foreground; font-size: 12px; wrap: word-wrap;
+}
+export component Heading inherits Text {
+    overflow: elide; wrap: no-wrap; color: Theme.foreground; font-size: 20px; font-weight: 700;
+}
+export component SingleLine inherits MutedText { wrap: no-wrap; overflow: elide; max-height: 18px; vertical-stretch: 0; }
+
 export struct ResourceRow { id: string, name: string, description: string, meta: string }
 export struct HostToggle { id: string, name: string, enabled: bool, available: bool, status: string, reset: bool }
 export struct HostRow { id: string, name: string, status: string, installed: bool, visible: bool, config: string, skills: string, agents: string }
 export struct ProjectSkillRow { id: string, name: string, hosts: [HostToggle] }
 export struct FormField { key: string, label: string, value: string, kind: int, placeholder: string }
 export struct CandidateRow { name: string, description: string, path: string, checked: bool, installed: bool }
-
-export struct ImportRow { id: string, name: string, description: string, source: string, checked: bool, available: bool, reason: string, remote: bool }
+export struct ImportRow { id: string, name: string, raw-name: string, host-id: string, description: string, source: string, checked: bool, available: bool, reason: string, remote: bool }
 export struct ApplyHostRow { id: string, name: string, checked: bool, available: bool, reason: string }
+export struct KeyValueRow { id: string, key: string, value: string, action: int, stored: bool }
+export struct CountRow { label: string, value: int, page: int }
+export struct IssueRow { title: string, detail: string, page: int, id: string, host: string }
+export struct MarkdownCell { text: string, styled: styled-text }
+export struct MarkdownTableRow { cells: [MarkdownCell], header: bool }
+export struct MarkdownLink { label: string, uri: string }
+export struct MarkdownBlock { kind: string, text: string, styled: styled-text, level: int, prefix: string, language: string, rows: [MarkdownTableRow], links: [MarkdownLink] }

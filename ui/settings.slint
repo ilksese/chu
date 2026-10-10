@@ -1,33 +1,72 @@
 import { ScrollView, LineEdit, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
 import { Action, Card, Heading, MutedText, HostRow } from "components.slint";
-export component HostSettings inherits ScrollView {
-    in property <[HostRow]> hosts;
+
+component HostCard inherits Card {
+    in property <HostRow> host;
     in property <bool> busy;
+    in property <bool> targeted;
+    in property <int> focus-request;
     callback save(string, string, string, string);
     callback restore(string);
     callback visibility-changed(string, bool);
+    callback locate(length);
+    border-color: root.targeted ? Theme.ring : Theme.border;
+    vertical-stretch: 0;
+    function locate-host() {
+        if root.targeted && !root.busy { root.locate(root.y); config.focus(); }
+    }
+    init => { root.locate-host(); }
+    changed targeted => { root.locate-host(); }
+    changed y => { if root.targeted { root.locate(root.y); } }
     VerticalLayout {
-        spacing: 18px; padding: 2px;
-        for host in root.hosts: Card {
-            VerticalLayout {
-                padding: 20px; spacing: 12px;
-                HorizontalLayout {
-                    Heading { text: host.name; }
-                    MutedText { text: host.status; }
-                    CheckBox { text: "在界面中显示"; checked: host.visible; enabled: !root.busy; toggled => { root.visibility-changed(host.id, self.checked); } }
-                }
-                MutedText { text: "原生配置文件"; }
-                config := LineEdit { text: host.config; enabled: !root.busy; }
-                MutedText { text: "Skills 目录"; }
-                skills := LineEdit { text: host.skills; enabled: !root.busy; }
-                MutedText { text: "Agents 目录"; }
-                agents := LineEdit { text: host.agents; enabled: !root.busy; }
-                HorizontalLayout {
-                    alignment: end; spacing: 10px;
-                    Action { text: "恢复配置备份"; enabled: !root.busy; clicked => { root.restore(host.id); } }
-                    Action { text: "保存路径"; primary: true; enabled: !root.busy; clicked => { root.save(host.id, config.text, skills.text, agents.text); } }
-                }
+        padding: 18px; spacing: 10px;
+        HorizontalLayout {
+            spacing: 12px;
+            Heading { text: root.host.name; horizontal-stretch: 1; }
+            MutedText { text: root.host.status; }
+            CheckBox {
+                text: "在界面中显示"; accessible-label: "在界面中显示 " + root.host.name;
+                checked: root.host.visible; enabled: !root.busy;
+                toggled => { root.visibility-changed(root.host.id, self.checked); }
             }
+        }
+        if root.targeted: MutedText { text: "已定位到此宿主 · 原生配置路径已聚焦"; font-size: 11px; }
+        MutedText { text: "原生配置文件"; }
+        config := LineEdit { text: root.host.config; accessible-label: root.host.name + " 原生配置文件"; enabled: !root.busy; }
+        MutedText { text: "Skills 目录"; }
+        skills := LineEdit { text: root.host.skills; accessible-label: root.host.name + " Skills 目录"; enabled: !root.busy; }
+        MutedText { text: "Agents 目录"; }
+        agents := LineEdit { text: root.host.agents; accessible-label: root.host.name + " Agents 目录"; enabled: !root.busy; }
+        HorizontalLayout {
+            alignment: end; spacing: 10px;
+            Action { text: "恢复配置备份"; accessible-name: "恢复 " + root.host.name + " 配置备份"; enabled: !root.busy; focus-request: root.focus-request; clicked => { root.restore(root.host.id); } }
+            Action { text: "保存路径"; accessible-name: "保存 " + root.host.name + " 路径"; primary: true; enabled: !root.busy; clicked => { root.save(root.host.id, config.text, skills.text, agents.text); } }
+        }
+    }
+}
+
+export component HostSettings inherits ScrollView {
+    in property <[HostRow]> hosts;
+    in property <bool> busy;
+    in property <bool> interactive;
+    in property <string> target-host;
+    in property <int> focus-request;
+    property <string> restore-owner;
+    callback save(string, string, string, string);
+    callback restore(string);
+    callback visibility-changed(string, bool);
+    enabled: root.interactive;
+    horizontal-scrollbar-policy: always-off;
+    VerticalLayout {
+        spacing: 14px; padding: 2px;
+        for host in root.hosts: HostCard {
+            host: host; busy: root.busy; targeted: root.target-host == host.id;
+            focus-request: root.restore-owner == host.id ? root.focus-request : 0;
+            locate(y) => { root.content-y = -max(0px, y - 4px); }
+            save(id, config, skills, agents) => { root.save(id, config, skills, agents); }
+            restore(id) => { root.restore-owner = id; root.restore(id); }
+            visibility-changed(id, visible) => { root.visibility-changed(id, visible); }
         }
     }
 }

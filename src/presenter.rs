@@ -37,6 +37,8 @@ pub struct ViewState {
     pub selected: String,
     pub details: BTreeMap<String, String>,
     pub updates: BTreeMap<String, String>,
+    pub session: crate::session::Session,
+    pub markdown_cache: BTreeMap<String, Vec<ui::MarkdownBlock>>,
 }
 pub fn model<T: Clone + 'static>(rows: Vec<T>) -> ModelRc<T> {
     Rc::new(VecModel::from(rows)).into()
@@ -87,13 +89,10 @@ fn toggles(
                 } else if !h.installed {
                     "未安装".into()
                 } else if enabled {
-                    modes
-                        .get(&h.id)
-                        .map(|m| format!("已启用 · {m}"))
-                        .unwrap_or_else(|| "已启用".into())
-                        .into()
+                    let _ = modes;
+                    "已应用".into()
                 } else {
-                    "未启用".into()
+                    "未应用".into()
                 },
             }
         })
@@ -137,8 +136,20 @@ pub fn render(ui: &AppWindow, state: &mut ViewState) {
         format!("{}  项目", state.snapshot.projects.len()).into(),
     ]));
     let rows = crate::search::rows(state);
+    let remembered = state
+        .session
+        .pages
+        .get(&page)
+        .map(|p| p.remembered.as_str())
+        .unwrap_or("");
+    if rows.iter().any(|r| r.id.as_str() == remembered) {
+        state.selected = remembered.into();
+    }
     if !rows.iter().any(|r| r.id.as_str() == state.selected) {
         state.selected = rows.first().map(|r| r.id.to_string()).unwrap_or_default();
+    }
+    if remembered.is_empty() && !state.selected.is_empty() {
+        state.session.pages.entry(page).or_default().remembered = state.selected.clone();
     }
     ui.set_rows(model(rows));
     ui.set_selected_id(state.selected.clone().into());
@@ -192,14 +203,7 @@ pub fn render(ui: &AppWindow, state: &mut ViewState) {
                             let hosts = s
                                 .hosts
                                 .iter()
-                                .filter(|h| {
-                                    !state.hidden.contains(&h.id)
-                                        && (h.installed
-                                            || deps.is_some_and(|d| d.contains_key(&h.id))
-                                            || crate::hosts::project_dir(&h.id).is_some_and(|d| {
-                                                std::path::Path::new(&p.path).join(d).is_dir()
-                                            }))
-                                })
+                                .filter(|h| !state.hidden.contains(&h.id))
                                 .map(|h| {
                                     let d = deps.and_then(|d| d.get(&h.id));
                                     let status = d.map(|d| d.status.as_str()).unwrap_or("");
@@ -288,7 +292,9 @@ pub fn render(ui: &AppWindow, state: &mut ViewState) {
                 )));
                 ui.set_selected_managed(r.managed);
                 if r.managed {
-                    ui.set_action_one("测试连接".into());
+                    ui.set_action_one("编辑 MCP".into());
+                    ui.set_action_two("测试连接".into());
+                    ui.set_action_three("删除 MCP".into());
                 }
             }
         }
@@ -332,6 +338,10 @@ pub fn render(ui: &AppWindow, state: &mut ViewState) {
                     false,
                 )));
                 ui.set_selected_managed(r.managed);
+                if r.managed {
+                    ui.set_action_one("编辑 Agent".into());
+                    ui.set_action_three("删除 Agent".into());
+                }
             }
         }
         6 => {
@@ -359,4 +369,5 @@ pub fn render(ui: &AppWindow, state: &mut ViewState) {
         }
         _ => {}
     }
+    crate::presenter_extra::extras(ui, state);
 }

@@ -767,6 +767,7 @@ dependencies = [
  "i-slint-backend-testing",
  "image",
  "md5",
+ "pulldown-cmark",
  "reqwest",
  "rfd",
  "same-file",

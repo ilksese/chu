@@ -4,8 +4,12 @@ fn row(id: &str, name: &str, description: &str, meta: &str) -> ui::ResourceRow {
     ui::ResourceRow {
         id: id.into(),
         name: name.into(),
-        description: description.into(),
-        meta: meta.into(),
+        description: description
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .into(),
+        meta: meta.split_whitespace().collect::<Vec<_>>().join(" ").into(),
     }
 }
 pub fn rows(state: &ViewState) -> Vec<ui::ResourceRow> {

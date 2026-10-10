@@ -41,7 +41,8 @@ model!(SkillLock {
     skill_path: String,
     content_hash: String,
     installed_at: String,
-    updated_at: String
+    updated_at: String,
+    resolved_commit: String
 });
 model!(PromptDeployment {
     mode: String,

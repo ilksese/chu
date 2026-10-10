@@ -1,9 +1,9 @@
-use crate::{App, fs::*, models::*, sources::*};
-use anyhow::{Context, Result, bail};
-use std::{
-    fs,
-    path::{Path, PathBuf},
+use crate::{
+    App, fs::*, git_runner, models::*, operation, skill_preview, skill_sources::PreparedCheckout,
+    sources::*,
 };
+use anyhow::{Context, Result, bail};
+use std::{fs, path::Path};
 
 impl App {
     pub(crate) fn discovered_skills(&self, hosts: &[Host]) -> Vec<SkillView> {
@@ -168,115 +168,131 @@ impl App {
         self.write_lock(&lock)
     }
     pub fn check_skill_updates(&self) -> Result<Vec<SkillUpdate>> {
-        let lock = self.read_lock()?;
-        let mut caches = Map::<PathBuf>::new();
-        let mut updates = Vec::new();
-        for (name, item) in lock.skills {
-            let key = format!("{}\n{}", item.source, item.r#ref);
-            let cache = if let Some(c) = caches.get(&key) {
-                c.clone()
-            } else {
-                let c = self.checkout(&item.source, &item.r#ref)?;
-                caches.insert(key, c.clone());
-                c
-            };
-            let found = discover(&cache);
-            let stored = self
-                .state
-                .skills
-                .iter()
-                .find(|s| s.name == name || s.id == name);
-            let installed_name = stored
-                .and_then(|s| frontmatter(Path::new(&s.source_dir)))
-                .map(|(n, _)| n)
-                .unwrap_or_else(|| name.clone());
-            let matching: Vec<_> = found
-                .iter()
-                .filter(|c| c.name == name || c.name == installed_name)
-                .collect();
-            let at_path = found.iter().find(|c| c.path == item.skill_path);
-            let status = if let Some(c) = at_path {
-                if hash_skill_path(&cache.join(&c.path)) == item.content_hash {
-                    ""
-                } else {
-                    "update"
+        git_runner::task(|| {
+            let lock = self.read_lock()?;
+            let mut caches = Map::<PreparedCheckout>::new();
+            let mut updates = Vec::new();
+            for (name, item) in lock.skills {
+                operation::check()?;
+                let key = format!("{}\n{}", item.source, item.r#ref);
+                if !caches.contains_key(&key) {
+                    let prepared = self.prepare_checkout(&item.source, &item.r#ref)?;
+                    skill_preview::snapshot_fingerprint(&prepared.path)?;
+                    caches.insert(key.clone(), prepared);
                 }
-            } else if matching.len() > 1 {
-                "ambiguous"
-            } else if matching.len() == 1 {
-                "update"
-            } else {
-                "deleted"
-            };
-            if !status.is_empty() {
-                updates.push(SkillUpdate {
-                    id: stored.map(|s| s.id.clone()).unwrap_or(name.clone()),
-                    name,
-                    status: status.into(),
-                });
+                let cache = &caches[&key].path;
+                let found = discover(cache);
+                let stored = self
+                    .state
+                    .skills
+                    .iter()
+                    .find(|s| s.name == name || s.id == name);
+                let installed_name = stored
+                    .and_then(|s| frontmatter(Path::new(&s.source_dir)))
+                    .map(|(n, _)| n)
+                    .unwrap_or_else(|| name.clone());
+                let matching: Vec<_> = found
+                    .iter()
+                    .filter(|c| c.name == name || c.name == installed_name)
+                    .collect();
+                let at_path = found.iter().find(|c| c.path == item.skill_path);
+                let status = if let Some(c) = at_path {
+                    if hash_skill_path(&skill_preview::snapshot_path(cache, &c.path)?)
+                        == item.content_hash
+                    {
+                        ""
+                    } else {
+                        "update"
+                    }
+                } else if matching.len() > 1 {
+                    "ambiguous"
+                } else if matching.len() == 1 {
+                    "update"
+                } else {
+                    "deleted"
+                };
+                if !status.is_empty() {
+                    updates.push(SkillUpdate {
+                        id: stored.map(|s| s.id.clone()).unwrap_or(name.clone()),
+                        name,
+                        status: status.into(),
+                    });
+                }
             }
-        }
-        updates.sort_by(|a, b| a.name.cmp(&b.name));
-        Ok(updates)
+            updates.sort_by(|a, b| a.name.cmp(&b.name));
+            operation::check()?;
+            Ok(updates)
+        })
     }
     pub fn update_skill(&mut self, id: &str) -> Result<()> {
-        let mut skill = self.skill(id)?;
-        let mut lock = self.read_lock()?;
-        let key = if lock.skills.contains_key(&skill.name) {
-            skill.name.clone()
-        } else {
-            skill.id.clone()
-        };
-        let mut item = lock
-            .skills
-            .get(&key)
-            .cloned()
-            .context("该 skill 没有来源记录，需要重新安装后才能更新")?;
-        let cache = self.checkout(&item.source, &item.r#ref)?;
-        let relative = resolve(
-            &item,
-            &skill.name,
-            Path::new(&skill.source_dir),
-            &discover(&cache),
-        )
-        .context("来源仓库里找不到这个 skill，或名称存在歧义")?;
-        let source = safe_relative(&cache, &relative)?;
-        if let Some((name, d)) = frontmatter(&source) {
-            safe_name(&name)?;
-            if self
-                .state
+        git_runner::task(|| {
+            let mut skill = self.skill(id)?;
+            let mut lock = self.read_lock()?;
+            let key = if lock.skills.contains_key(&skill.name) {
+                skill.name.clone()
+            } else {
+                skill.id.clone()
+            };
+            let mut item = lock
                 .skills
-                .iter()
-                .any(|s| s.id != id && s.name == name)
+                .get(&key)
+                .cloned()
+                .context("该 skill 没有来源记录，需要重新安装后才能更新")?;
+            let prepared = self.prepare_checkout(&item.source, &item.r#ref)?;
+            skill_preview::snapshot_fingerprint(&prepared.path)?;
+            let relative = resolve(
+                &item,
+                &skill.name,
+                Path::new(&skill.source_dir),
+                &discover(&prepared.path),
+            )
+            .context("来源仓库里找不到这个 skill，或名称存在歧义")?;
+            let source = skill_preview::snapshot_path(&prepared.path, &relative)?;
+            if let Some((name, description)) = frontmatter(&source) {
+                safe_name(&name)?;
+                if self
+                    .state
+                    .skills
+                    .iter()
+                    .any(|s| s.id != id && s.name == name)
+                {
+                    bail!("更新后的 Skill 名称与现有资源冲突");
+                }
+                skill.name = name;
+                skill.description = description;
+            }
+            let staging = tempfile::Builder::new()
+                .prefix(".chu-update-prepare-")
+                .tempdir_in(&self.root)?;
+            let staged = staging.path().join("skill");
+            let fingerprint = skill_preview::snapshot_fingerprint(&source)?;
+            copy_skill_dir(&source, &staged)?;
+            if skill_preview::snapshot_fingerprint(&staged)? != fingerprint {
+                bail!("更新快照复制校验失败，未修改已安装资源");
+            }
+            operation::begin_commit()?;
+            replace_dir(&staged, Path::new(&skill.source_dir))?;
+            item.skill_path = relative;
+            item.content_hash = hash_path(Path::new(&skill.source_dir));
+            item.updated_at = now();
+            item.resolved_commit = prepared.revision.clone();
+            for dep in skill
+                .deployments
+                .values_mut()
+                .filter(|d| d.mode == "copy" && !d.target.is_empty())
             {
-                bail!("更新后的 Skill 名称与现有资源冲突");
+                if hash_path(Path::new(&dep.target)) == dep.last_hash {
+                    replace_dir(Path::new(&skill.source_dir), Path::new(&dep.target))?;
+                    dep.last_hash = hash_path(Path::new(&dep.target));
+                }
             }
-            skill.name = name;
-            skill.description = d;
-        }
-        let staging = tempfile::tempdir()?;
-        let staged = staging.path().join("skill");
-        copy_skill_dir(&source, &staged)?;
-        replace_dir(&staged, Path::new(&skill.source_dir))?;
-        item.skill_path = relative;
-        item.content_hash = hash_path(Path::new(&skill.source_dir));
-        item.updated_at = now();
-        for dep in skill
-            .deployments
-            .values_mut()
-            .filter(|d| d.mode == "copy" && !d.target.is_empty())
-        {
-            if hash_path(Path::new(&dep.target)) == dep.last_hash {
-                replace_dir(Path::new(&skill.source_dir), Path::new(&dep.target))?;
-                dep.last_hash = hash_path(Path::new(&dep.target));
-            }
-        }
-        self.sync_project_copies(&skill)?;
-        *self.state.skills.iter_mut().find(|s| s.id == id).unwrap() = skill.clone();
-        lock.skills.remove(&key);
-        lock.skills.insert(skill.name, item);
-        self.save()?;
-        self.write_lock(&lock)
+            self.sync_project_copies(&skill)?;
+            *self.state.skills.iter_mut().find(|s| s.id == id).unwrap() = skill.clone();
+            lock.skills.remove(&key);
+            lock.skills.insert(skill.name, item);
+            self.save()?;
+            self.write_lock(&lock)
+        })
     }
 }
 pub fn verify_deployment(source: &Path, dep: &Deployment) -> Result<()> {

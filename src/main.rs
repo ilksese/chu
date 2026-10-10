@@ -10,8 +10,8 @@ fn main() -> Result<()> {
     let mut screenshot = None;
     let mut page = 0;
     let mut import_dialog = false;
-    let mut width = 1360;
-    let mut height = 860;
+    let mut width = None;
+    let mut height = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -24,8 +24,8 @@ fn main() -> Result<()> {
             }
             "--import-dialog" => import_dialog = true,
             "--page" => page = args.next().context("--page 缺少编号")?.parse()?,
-            "--width" => width = args.next().context("--width 缺少尺寸")?.parse()?,
-            "--height" => height = args.next().context("--height 缺少尺寸")?.parse()?,
+            "--width" => width = Some(args.next().context("--width 缺少尺寸")?.parse::<u32>()?),
+            "--height" => height = Some(args.next().context("--height 缺少尺寸")?.parse::<u32>()?),
             "--help" | "-h" => {
                 println!(
                     "Chu · Rust + Slint\n默认启动原生桌面应用。\n隔离运行: chu --root /tmp/chu/state --home /tmp/chu/home\n自动化: --snapshot 或 --request '{{\"method\":\"Refresh\",\"args\":[]}}'\n截图: --screenshot /tmp/chu.png --page 0 --width 1080 --height 680\n导入弹窗截图: 追加 --import-dialog --page 2（或 3）\n页面: 0 总览 / 1 项目 / 2 Skills / 3 MCP / 4 Providers / 5 Agents / 6 提示词 / 7 References / 8 设置"
@@ -57,8 +57,13 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let ui = AppWindow::new()?;
-    ui.window()
-        .set_size(slint::PhysicalSize::new(width, height));
+    if width.is_some() || height.is_some() {
+        let size = ui.window().size();
+        ui.window().set_size(slint::PhysicalSize::new(
+            width.unwrap_or(size.width),
+            height.unwrap_or(size.height),
+        ));
+    }
     let controller = Controller::attach(&ui, app)?;
     controller.navigate(page);
     if import_dialog {
@@ -98,7 +103,10 @@ fn main() -> Result<()> {
             let _ = slint::quit_event_loop();
         });
     }
-    ui.run()?;
+    let run_result = ui.run();
+    let shutdown_result = controller.shutdown();
     drop(controller);
+    shutdown_result?;
+    run_result?;
     Ok(())
 }

@@ -42,6 +42,7 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     temp.write_all(data)?;
     temp.as_file().sync_all()?;
     temp.persist(path).map_err(|e| e.error)?;
+    crate::write_observer::after_write(path)?;
     Ok(())
 }
 pub fn write_json<T: serde::Serialize>(path: &Path, value: &T) -> Result<()> {

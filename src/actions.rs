@@ -49,11 +49,8 @@ impl Controller {
                         );
                     }
                 }
-                3 => self.post(
-                    "TestMCP",
-                    json!([id]),
-                    Completion::Snapshot { close: false },
-                ),
+                3 => self.open("UpdateMCP", &id, Value::Null),
+                5 => self.open("UpdateAgent", &id, Value::Null),
                 4 => self.open("UpdateProvider", &id, Value::Null),
                 6 => self.open("UpdatePrompt", &id, Value::Null),
                 7 => self.open("UpdateReference", &id, Value::Null),
@@ -61,6 +58,11 @@ impl Controller {
             },
             "two" if !id.is_empty() => match page {
                 1 => self.choose_project("RelocateProject", &id),
+                3 => self.post(
+                    "TestMCPResult",
+                    json!([id]),
+                    Completion::Snapshot { close: false },
+                ),
                 4 => self.post(
                     "RefreshProviderModels",
                     json!([id]),
@@ -72,7 +74,9 @@ impl Controller {
                 let method = match page {
                     1 => "DeleteProject",
                     2 => "DeleteSkill",
+                    3 => "DeleteMCP",
                     4 => "DeleteProvider",
+                    5 => "DeleteAgent",
                     6 => "DeletePrompt",
                     7 => "DeleteReference",
                     _ => return,
@@ -119,9 +123,22 @@ impl Controller {
         let Some(ui) = self.window.upgrade() else {
             return;
         };
+        if !ui.get_dialog_can_submit() || ui.get_dialog_busy() {
+            return;
+        }
         let Some(dialog) = self.dialog.borrow().clone() else {
             return;
         };
+        if dialog.method == "ImportHostResources" {
+            if let Some(args) = self.import_command_args() {
+                self.post(
+                    "ImportHostResources",
+                    args,
+                    Completion::Snapshot { close: true },
+                );
+            }
+            return;
+        }
         match crate::editor::command(&ui, &dialog) {
             Ok((method, args)) => self.post(&method, args, Completion::Snapshot { close: true }),
             Err(e) => ui.set_dialog_error(e.to_string().into()),
@@ -141,10 +158,24 @@ impl Controller {
             );
             return;
         }
+        if self.tasks.borrow().blocking() {
+            return;
+        }
         let values = crate::editor::values(&ui);
+        let repository = values.get("repository").cloned().unwrap_or_default();
+        let previous = if let Some(d) = self.dialog.borrow_mut().as_mut() {
+            d.preview_source = repository.clone();
+            std::mem::take(&mut d.preview_token)
+        } else {
+            return;
+        };
+        if !previous.is_empty() {
+            self.release_preview(&previous);
+        }
+        ui.set_candidates(crate::presenter::model(Vec::new()));
         self.post(
-            "PreviewSkills",
-            json!([values.get("repository").cloned().unwrap_or_default()]),
+            "PreviewSkillsBound",
+            json!([repository]),
             Completion::Preview,
         );
     }

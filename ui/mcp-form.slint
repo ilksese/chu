@@ -1,0 +1,153 @@
+import { LineEdit, TextEdit, ComboBox, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Heading, MutedText, SingleLine, KeyValueRow } from "components.slint";
+
+component SecretAction inherits Rectangle {
+    in-out property <int> value;
+    in property <bool> stored;
+    in property <bool> enabled;
+    in property <string> label;
+    callback edited();
+    min-height: 36px; vertical-stretch: 0;
+    HorizontalLayout {
+        spacing: 6px; alignment: start;
+        Action { text: "保留"; accessible-name: root.label + " · 保留已有值"; compact: true; primary: root.value == 0; enabled: root.enabled && root.stored; clicked => { root.value = 0; root.edited(); } }
+        Action { text: "设置"; accessible-name: root.label + " · 设置新值"; compact: true; primary: root.value == 1; enabled: root.enabled; clicked => { root.value = 1; root.edited(); } }
+        Action { text: "移除"; accessible-name: root.label + " · 移除值"; compact: true; primary: root.value == 2; enabled: root.enabled; clicked => { root.value = 2; root.edited(); } }
+    }
+}
+
+component KeyValueEditor inherits Rectangle {
+    in-out property <[KeyValueRow]> rows;
+    in property <string> kind;
+    in property <string> title;
+    in property <bool> enabled;
+    callback add();
+    callback remove(int);
+    callback edited(int);
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            Text { text: root.title; color: Theme.foreground; font-size: 13px; font-weight: 600; horizontal-stretch: 1; }
+            Action { text: "添加"; accessible-name: "添加 " + root.title; compact: true; enabled: root.enabled; clicked => { root.add(); } }
+        }
+        for entry[index] in root.rows: Rectangle {
+            border-width: 1px; border-color: Theme.subtle-border; border-radius: 6px;
+            VerticalLayout {
+                padding: 10px; spacing: 6px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    LineEdit {
+                        text <=> entry.key; placeholder-text: "Key";
+                        accessible-label: root.title + " 第 " + (index + 1) + " 行 Key";
+                        read-only: entry.stored; enabled: root.enabled;
+                        edited => { root.edited(index); }
+                    }
+                    SecretAction { label: root.title + " " + entry.key; value <=> entry.action; stored: entry.stored; enabled: root.enabled; edited => { root.edited(index); } }
+                    Action { text: "×"; accessible-name: "移除 " + root.title + " 第 " + (index + 1) + " 行"; compact: true; enabled: root.enabled; clicked => { root.remove(index); } }
+                }
+                if entry.action == 1: LineEdit {
+                    text <=> entry.value; input-type: password; placeholder-text: "输入新值；已有值不会回填";
+                    accessible-label: root.title + " " + entry.key + " 新值";
+                    enabled: root.enabled; edited => { root.edited(index); }
+                }
+                if entry.action != 1: SingleLine { text: entry.action == 2 ? "保存时移除此项。" : entry.stored ? "已设置 · 保留已有值，不显示内容。" : "尚未设置。"; font-size: 11px; }
+            }
+        }
+        if root.rows.length == 0: MutedText { text: "尚无条目。只显示键名，已有秘密值不会回填。"; font-size: 11px; }
+    }
+}
+
+export component McpForm inherits Rectangle {
+    in property <bool> enabled;
+    in-out property <int> transport;
+    in-out property <string> command;
+    in-out property <string> endpoint;
+    in-out property <[string]> args;
+    in-out property <int> args-action;
+    in property <int> args-stored-count;
+    in-out property <[KeyValueRow]> env;
+    in-out property <[KeyValueRow]> headers;
+    in-out property <int> secret-action;
+    in property <bool> secret-stored;
+    in-out property <string> secret;
+    in-out property <string> advanced;
+    in-out property <bool> show-advanced;
+    callback edited();
+    callback type-changed(int);
+    callback arg-add();
+    callback arg-remove(int);
+    callback entry-add(string);
+    callback entry-remove(string, int);
+    callback entry-changed(string, int);
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 14px;
+        VerticalLayout {
+            spacing: 6px;
+            Text { text: "连接类型"; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+            ComboBox {
+                model: ["stdio", "http", "sse"]; current-index <=> root.transport;
+                enabled: root.enabled; accessible-label: "MCP 连接类型";
+                selected => { root.type-changed(self.current-index); root.edited(); }
+            }
+        }
+        if root.transport == 0: VerticalLayout {
+            spacing: 10px;
+            Text { text: "启动命令"; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+            LineEdit { text <=> root.command; placeholder-text: "例如 npx；留空保留已有命令"; accessible-label: "启动命令"; enabled: root.enabled; edited => { root.edited(); } }
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: "启动参数"; color: Theme.foreground; font-size: 13px; font-weight: 600; horizontal-stretch: 1; }
+                SecretAction { label: "启动参数"; value <=> root.args-action; stored: root.args-stored-count > 0; enabled: root.enabled; edited => { root.edited(); } }
+            }
+            if root.args-action == 0: MutedText { text: "已有 " + root.args-stored-count + " 项参数 · 保留，不显示敏感内容。"; font-size: 11px; }
+            if root.args-action == 2: MutedText { text: "保存时移除全部启动参数。"; font-size: 11px; }
+            if root.args-action == 1: VerticalLayout {
+                spacing: 8px;
+                for argument[index] in root.args: HorizontalLayout {
+                    spacing: 8px;
+                    LineEdit { text <=> argument; input-type: password; accessible-label: "启动参数 " + (index + 1); placeholder-text: "一个参数一行"; enabled: root.enabled; edited => { root.edited(); } }
+                    Action { text: "×"; accessible-name: "移除启动参数 " + (index + 1); compact: true; enabled: root.enabled; clicked => { root.arg-remove(index); root.edited(); } }
+                }
+                Action { text: "添加参数"; enabled: root.enabled; clicked => { root.arg-add(); root.edited(); } }
+            }
+            KeyValueEditor {
+                rows <=> root.env; title: "环境变量"; kind: "env"; enabled: root.enabled;
+                add => { root.entry-add("env"); root.edited(); }
+                remove(index) => { root.entry-remove("env", index); root.edited(); }
+                edited(index) => { root.entry-changed("env", index); root.edited(); }
+            }
+        }
+        if root.transport != 0: VerticalLayout {
+            spacing: 10px;
+            Text { text: "服务地址"; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+            LineEdit { text <=> root.endpoint; input-type: password; placeholder-text: "https://…；留空保留已有地址"; accessible-label: "服务地址"; enabled: root.enabled; edited => { root.edited(); } }
+            KeyValueEditor {
+                rows <=> root.headers; title: "请求 Headers"; kind: "headers"; enabled: root.enabled;
+                add => { root.entry-add("headers"); root.edited(); }
+                remove(index) => { root.entry-remove("headers", index); root.edited(); }
+                edited(index) => { root.entry-changed("headers", index); root.edited(); }
+            }
+        }
+        VerticalLayout {
+            spacing: 6px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: "认证 Secret"; color: Theme.foreground; font-size: 13px; font-weight: 600; horizontal-stretch: 1; }
+                SecretAction { label: "认证 Secret"; value <=> root.secret-action; stored: root.secret-stored; enabled: root.enabled; edited => { root.edited(); } }
+            }
+            if root.secret-action == 1: LineEdit { text <=> root.secret; input-type: password; accessible-label: "认证 Secret 新值"; placeholder-text: "输入新值"; enabled: root.enabled; edited => { root.edited(); } }
+            if root.secret-action != 1: MutedText { text: root.secret-action == 2 ? "保存时移除认证 Secret。" : root.secret-stored ? "已设置 · 保留已有 Secret。" : "尚未设置 Secret。"; font-size: 11px; }
+            if root.transport == 0: MutedText { text: "stdio 的认证 Secret 会作为 token 保存；环境变量凭证请在上方单独设置。"; font-size: 11px; }
+        }
+        CheckBox { text: "高级 JSON（可选）"; accessible-label: "显示 MCP 高级 JSON"; checked <=> root.show-advanced; enabled: root.enabled; toggled => { root.edited(); } }
+        if root.show-advanced: VerticalLayout {
+            spacing: 6px;
+            MutedText { text: "高级 JSON 优先于上方同字段的设置、保留或移除动作。仅支持 args（字符串数组）、env/headers（字符串对象）、secret（字符串）；未填写字段沿用上方动作。编辑时 env/headers 仅设置列出的键，未列出的已有键保留；已有秘密不会回填。"; font-size: 11px; }
+            TextEdit { text <=> root.advanced; accessible-label: "MCP 高级 JSON"; font-family: "monospace"; min-height: 140px; preferred-height: 180px; enabled: root.enabled; edited => { root.edited(); } }
+        }
+    }
+}

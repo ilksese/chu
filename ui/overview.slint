@@ -1,0 +1,107 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Card, Heading, MutedText, SingleLine, HostRow, CountRow, IssueRow } from "components.slint";
+
+component CountCard inherits Card {
+    in property <CountRow> item;
+    in property <bool> enabled;
+    callback activate();
+    min-height: 94px;
+    horizontal-stretch: 1;
+    border-color: focus.has-focus ? Theme.ring : Theme.border;
+    background: pointer.has-hover && root.enabled ? Theme.muted : Theme.card;
+    forward-focus: focus;
+    accessible-role: button;
+    accessible-label: root.item.label + " · " + root.item.value + " · 查看列表";
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.activate(); } }
+    VerticalLayout {
+        padding: 16px; spacing: 4px;
+        Text { text: root.item.value; color: Theme.foreground; font-size: 28px; font-weight: 700; }
+        SingleLine { text: root.item.label; }
+    }
+    pointer := TouchArea { enabled: root.enabled; clicked => { focus.focus(); root.activate(); } }
+    focus := FocusScope {
+        x: 0px; y: 0px; width: 0px; height: 0px; enabled: root.enabled;
+        key-pressed(event) => {
+            if root.enabled && (event.text == Key.Return || event.text == Key.Space) { root.activate(); return accept; }
+            return reject;
+        }
+    }
+}
+
+export component OverviewPage inherits ScrollView {
+    in property <[CountRow]> counts;
+    in property <[string]> legacy-counts;
+    in property <[IssueRow]> issues;
+    in property <[HostRow]> hosts;
+    in property <string> root-path;
+    in property <bool> interactive;
+    in property <bool> writable;
+    callback navigate(int);
+    callback navigate-target(int, string, string);
+    callback install();
+    callback copy(string);
+    enabled: root.interactive;
+    horizontal-scrollbar-policy: always-off;
+    VerticalLayout {
+        padding: 2px; spacing: 16px;
+        Card {
+            min-height: 132px; vertical-stretch: 0;
+            VerticalLayout {
+                padding: 20px; spacing: 10px;
+                Heading { text: "你的 Agent 资源，都在这里。"; font-size: 26px; }
+                MutedText { text: "集中管理资源与宿主部署。选择资源卡片进入列表，或定位需要处理的问题。"; font-size: 13px; }
+                HorizontalLayout {
+                    spacing: 10px; alignment: start;
+                    Action { text: "安装 Skills"; primary: true; enabled: root.writable; clicked => { root.install(); } }
+                    Action { text: "管理宿主"; enabled: root.interactive; clicked => { root.navigate(8); } }
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: 12px;
+            for item in root.counts: CountCard { item: item; enabled: root.interactive; activate => { root.navigate(item.page); } }
+            if root.counts.length == 0: HorizontalLayout {
+                spacing: 12px;
+                for value[index] in root.legacy-counts: Card {
+                    min-height: 94px;
+                    VerticalLayout { padding: 16px; Heading { text: value; font-size: 20px; } }
+                    TouchArea { enabled: root.interactive; clicked => { root.navigate(index == 0 ? 2 : index == 1 ? 3 : index == 2 ? 5 : 1); } }
+                }
+            }
+        }
+        if root.issues.length > 0: Heading { text: "需要处理"; font-size: 18px; }
+        for issue in root.issues: Card {
+            vertical-stretch: 0;
+            HorizontalLayout {
+                padding: 14px; spacing: 12px;
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    Text { text: issue.title; color: Theme.foreground; font-size: 14px; font-weight: 600; wrap: word-wrap; }
+                    MutedText { text: issue.detail; }
+                }
+                Action { text: "定位"; accessible-name: "定位问题 · " + issue.title; enabled: root.interactive; clicked => { root.navigate-target(issue.page, issue.id, issue.host); } }
+            }
+        }
+        Heading { text: "Agent 宿主"; font-size: 18px; }
+        for host in root.hosts: Card {
+            min-height: 84px; vertical-stretch: 0;
+            HorizontalLayout {
+                padding: 16px; spacing: 12px;
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    Heading { text: host.name; font-size: 17px; }
+                    SingleLine { text: host.config; font-size: 11px; }
+                }
+                Text { text: host.status; color: host.installed ? Theme.success : Theme.muted-foreground; font-size: 12px; vertical-alignment: center; }
+                Action { text: "配置"; accessible-name: "配置 " + host.name; enabled: root.interactive; clicked => { root.navigate-target(8, "", host.id); } }
+            }
+        }
+        HorizontalLayout {
+            spacing: 10px;
+            SingleLine { text: "中央资源库 · " + root.root-path; horizontal-stretch: 1; font-size: 11px; }
+            Action { text: "复制路径"; accessible-name: "复制中央资源库路径"; enabled: root.interactive; clicked => { root.copy(root.root-path); } }
+        }
+    }
+}

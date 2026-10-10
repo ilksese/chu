@@ -21,14 +21,17 @@ pub fn read_config(path: &Path, format: &str) -> Result<Value> {
     }
     Ok(value)
 }
-pub fn write_config(path: &Path, format: &str, value: &Value) -> Result<()> {
-    let data = if format == "toml" {
-        toml::to_string_pretty(value)?.into_bytes()
+pub(crate) fn config_bytes(format: &str, value: &Value) -> Result<Vec<u8>> {
+    if format == "toml" {
+        Ok(toml::to_string_pretty(value)?.into_bytes())
     } else {
-        let mut d = serde_json::to_vec_pretty(value)?;
-        d.push(b'\n');
-        d
-    };
+        let mut data = serde_json::to_vec_pretty(value)?;
+        data.push(b'\n');
+        Ok(data)
+    }
+}
+pub fn write_config(path: &Path, format: &str, value: &Value) -> Result<()> {
+    let data = config_bytes(format, value)?;
     if exists(path) {
         copy_file(
             path,
@@ -212,44 +215,41 @@ impl App {
                     if self.state.mcps.iter().any(|m| m.name == *name) {
                         continue;
                     }
-                    let endpoint = server["url"].as_str().unwrap_or("");
-                    found.push(McpView {
-                        id: format!("discovered-mcp-{}-{}", host.id, slug(name)),
-                        name: name.clone(),
-                        r#type: if endpoint.is_empty() {
-                            "stdio"
-                        } else {
-                            server["type"].as_str().unwrap_or("http")
-                        }
-                        .into(),
-                        endpoint: endpoint.into(),
-                        command: server["command"].as_str().unwrap_or("").into(),
-                        enabled_on: [(host.id.clone(), true)].into(),
-                        ..McpView::default()
-                    });
+                    if let Ok(item) = crate::mcp_native::parse(name, server) {
+                        let mut view = crate::resource_edit::safe_mcp_view(&item);
+                        view.id = format!("discovered-mcp-{}-{}", host.id, slug(name));
+                        view.managed = false;
+                        view.enabled_on = [(host.id.clone(), true)].into();
+                        found.push(view);
+                    }
                 }
             }
         }
         found
     }
-    pub fn test_mcp(&self, id: &str) -> Result<String> {
+    pub fn test_mcp_result(&self, id: &str) -> Result<crate::resource_edit::McpTestResult> {
+        use crate::resource_edit::{McpTestResult, McpTestStatus};
         let item = self
             .state
             .mcps
             .iter()
-            .find(|m| m.id == id)
+            .find(|item| item.id == id)
             .context("找不到 MCP")?;
         if item.r#type == "stdio" {
-            return Ok(if crate::hosts::command_present(&item.command) {
-                "命令可用。Chu 不会在测试时启动服务。".into()
-            } else {
-                format!("找不到命令 {:?}", item.command)
+            return Ok(McpTestResult {
+                status: if crate::hosts::command_present(&item.command) {
+                    McpTestStatus::CommandAvailable
+                } else {
+                    McpTestStatus::CommandMissing
+                },
+                http_status: None,
             });
         }
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(5))
             .redirect(reqwest::redirect::Policy::none())
-            .build()?;
+            .build()
+            .context("无法准备 MCP 连接测试")?;
         let mut request = client.get(&item.endpoint);
         for (key, value) in &item.headers {
             request = request.header(key, value);
@@ -258,22 +258,39 @@ impl App {
             && !item
                 .headers
                 .keys()
-                .any(|k| k.eq_ignore_ascii_case("Authorization"))
+                .any(|key| key.eq_ignore_ascii_case("Authorization"))
         {
             request = request.bearer_auth(&item.secret);
         }
-        match request.send() {
-            Ok(r) => Ok(format!(
-                "{}，HTTP {}",
-                if r.status().as_u16() < 400 {
-                    "连接成功"
+        Ok(match request.send() {
+            Ok(response) => McpTestResult {
+                status: if response.status().as_u16() < 400 {
+                    McpTestStatus::Reachable
                 } else {
-                    "服务返回"
+                    McpTestStatus::HttpError
                 },
-                r.status().as_u16()
-            )),
-            Err(_) => Ok("连接失败：网络连接异常或超时".into()),
-        }
+                http_status: Some(response.status().as_u16()),
+            },
+            Err(_) => McpTestResult {
+                status: McpTestStatus::ConnectionFailed,
+                http_status: None,
+            },
+        })
+    }
+    pub fn test_mcp(&self, id: &str) -> Result<String> {
+        use crate::resource_edit::McpTestStatus;
+        let result = self.test_mcp_result(id)?;
+        Ok(match result.status {
+            McpTestStatus::CommandAvailable => "命令可用。Chu 不会在测试时启动服务。".into(),
+            McpTestStatus::CommandMissing => "找不到命令，请检查可执行文件和 PATH".into(),
+            McpTestStatus::Reachable => {
+                format!("连接成功，HTTP {}", result.http_status.unwrap_or_default())
+            }
+            McpTestStatus::HttpError => {
+                format!("服务返回，HTTP {}", result.http_status.unwrap_or_default())
+            }
+            McpTestStatus::ConnectionFailed => "连接失败：网络连接异常或超时".into(),
+        })
     }
     pub fn restore_backup(&mut self, host: &str) -> Result<()> {
         let host = self.host(host)?;

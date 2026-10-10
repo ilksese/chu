@@ -1,87 +1,189 @@
-import { ScrollView, LineEdit, TextEdit, CheckBox } from "std-widgets.slint";
+import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { Action, Card, Heading, MutedText, FormField, CandidateRow, ImportRow, ApplyHostRow } from "components.slint";
+import { Action, Card, Heading, MutedText, FormField, CandidateRow, ImportRow, ApplyHostRow, KeyValueRow } from "components.slint";
+import { GenericFields, SkillCandidates } from "fields.slint";
+import { ImportFilters, ImportCandidates, ImportFooter } from "imports.slint";
+import { McpForm } from "mcp-form.slint";
+
+component DiscardPrompt inherits Card {
+    callback discard();
+    callback continue-editing();
+    forward-focus: continue-action;
+    init => { continue-action.focus(); }
+    focus := FocusScope {
+        // 这是承载控件布局的祖先容器，不是覆盖 TouchArea 的键盘兄弟层。
+        // 禁用点击取焦及 Tab 入口，避免首击被吞；独立键盘目标仍保持零尺寸。
+        width: root.width; height: root.height;
+        focus-on-click: false; focus-on-tab-navigation: false;
+        key-pressed(event) => { if event.text == Key.Escape { root.continue-editing(); return accept; } return reject; }
+        VerticalLayout {
+            width: root.width; height: root.height; padding: 20px; spacing: 14px;
+            Heading { text: "放弃未保存的更改？"; }
+            MutedText { text: "草稿还未写入资源或宿主配置。继续编辑可保留当前输入。"; }
+            HorizontalLayout {
+                alignment: end; spacing: 10px;
+                continue-action := Action { text: "继续编辑"; primary: true; clicked => { root.continue-editing(); } }
+                Action { text: "放弃更改"; danger: true; clicked => { root.discard(); } }
+            }
+        }
+    }
+}
+
 export component Editor inherits Card {
     in property <string> title;
     in property <string> description;
     in property <string> error;
     in property <bool> busy;
+    in property <bool> can-submit: true;
+    in property <bool> can-cancel: true;
+    in property <int> load-state;
+    in property <bool> short;
+    in property <bool> discard-open;
     in property <bool> installer;
     in property <bool> importer;
+    in property <bool> confirmation;
+    in property <bool> mcp;
     in property <int> import-count;
     in property <bool> has-apply-targets;
     in-out property <[ImportRow]> import-rows;
     in-out property <[ApplyHostRow]> apply-hosts;
-    in property <bool> confirmation;
+    in-out property <string> import-query;
+    in-out property <int> import-host-filter;
+    in property <[string]> import-host-names;
+    in property <string> import-conflict;
+    in property <string> import-compatibility;
     in-out property <[FormField]> fields;
     in-out property <[CandidateRow]> candidates;
+    in-out property <int> mcp-type;
+    in-out property <string> mcp-command;
+    in-out property <string> mcp-endpoint;
+    in-out property <[string]> mcp-args;
+    in-out property <int> mcp-args-action;
+    in property <int> mcp-args-stored-count;
+    in-out property <[KeyValueRow]> mcp-env;
+    in-out property <[KeyValueRow]> mcp-headers;
+    in-out property <int> mcp-secret-action;
+    in property <bool> mcp-secret-stored;
+    in-out property <string> mcp-secret;
+    in-out property <string> mcp-advanced;
+    in-out property <bool> mcp-show-advanced;
+    property <bool> editable: !root.busy && root.load-state == 0 && !root.discard-open;
+    property <bool> submit-enabled: root.editable && root.can-submit && (!root.importer || (root.import-count > 0 && root.import-conflict == ""));
     callback cancel();
     callback submit();
     callback preview();
+    callback retry();
+    callback discard();
+    callback continue-editing();
+    callback dialog-changed();
+    callback field-changed(string);
     callback import-selection-changed();
+    callback import-filter-changed(string, int);
+    callback mcp-type-changed(int);
+    callback mcp-arg-add();
+    callback mcp-arg-remove(int);
+    callback mcp-entry-add(string);
+    callback mcp-entry-remove(string, int);
+    callback mcp-entry-changed(string, int);
     preferred-width: 660px;
-    forward-focus: focus;
+    accessible-role: groupbox; accessible-label: "编辑窗口";
+    preferred-height: root.confirmation || root.short ? 208px + root.fields.length * 68px + (root.error != "" ? 48px : 0px) : 700px;
+    forward-focus: cancel-action;
+    init => { if !root.confirmation && root.fields.length > 0 { generic-fields.focus-first-input(); } else { cancel-action.focus(); } }
+    changed discard-open => { if !root.discard-open { if !root.confirmation && root.fields.length > 0 { generic-fields.focus-first-input(); } else { cancel-action.focus(); } } }
     focus := FocusScope {
-        init => { self.focus(); }
-        key-pressed(event) => { if event.text == Key.Escape && !root.busy { root.cancel(); return accept; } return reject; }
-    VerticalLayout {
-        padding: 24px; spacing: 16px;
-        HorizontalLayout { Heading { text: root.title; horizontal-stretch: 1; } Action { text: "关闭"; enabled: !root.busy; clicked => { root.cancel(); } } }
-        MutedText { text: root.description; }
-        if root.error != "": Text { text: root.error; color: Theme.destructive; wrap: word-wrap; max-height: 80px; overflow: elide; font-size: 13px; }
-        ScrollView {
-            vertical-stretch: 1;
-            VerticalLayout {
-                spacing: 14px; padding-right: 8px;
-                for field in root.fields: VerticalLayout {
-                    spacing: 6px;
-                    if field.kind != 2: Text { text: field.label; color: Theme.foreground; font-size: 13px; font-weight: 600; }
-                    if field.kind == 0 || field.kind == 4: LineEdit {
-                        accessible-label: field.label; text <=> field.value; placeholder-text: field.placeholder;
-                        input-type: field.kind == 4 ? password : text;
-                        enabled: !root.busy;
-                    }
-                    if field.kind == 1: TextEdit { accessible-label: field.label; text <=> field.value; min-height: 120px; preferred-height: 180px; enabled: !root.busy; }
-                    if field.kind == 2: CheckBox { text: field.label; checked: field.value == "true"; enabled: !root.busy; toggled => { field.value = self.checked ? "true" : "false"; } }
-                }
-                if root.importer && root.import-rows.length == 0: MutedText { text: root.busy ? "正在扫描宿主资源…" : "没有发现可导入的资源。可以重新扫描，或检查设置中的宿主路径。"; }
-                for item in root.import-rows: Card {
-                    vertical-stretch: 0; min-height: 76px;
-                    VerticalLayout { padding: 12px; spacing: 5px;
-                        CheckBox { text: item.name; checked <=> item.checked; enabled: item.available && !root.busy; toggled => { root.import-selection-changed(); } }
-                        if item.description != "": MutedText { text: item.description; }
-                        MutedText { text: item.source; font-size: 11px; }
-                        if item.reason != "": MutedText { text: item.reason; }
-                    }
-                }
-                for candidate in root.candidates: Card {
-                    min-height: 72px; vertical-stretch: 0;
-                    VerticalLayout { padding: 10px; spacing: 4px;
-                        CheckBox { text: candidate.name + (candidate.installed ? " · 已安装" : ""); checked <=> candidate.checked; enabled: !candidate.installed && !root.busy; }
-                        MutedText { text: candidate.description + "\n" + candidate.path; }
-                    }
-                }
-                Rectangle { vertical-stretch: 1; }
-            }
+        // 这是承载控件布局的祖先容器，不是覆盖 TouchArea 的键盘兄弟层。
+        // 禁用点击取焦及 Tab 入口，避免首击被吞；独立键盘目标仍保持零尺寸。
+        width: root.width; height: root.height;
+        focus-on-click: false; focus-on-tab-navigation: false;
+        key-pressed(event) => {
+            if event.text == Key.Escape && root.can-cancel && !root.discard-open { root.cancel(); return accept; }
+            // Tab 使用原生焦点遍历，Return 交给各个输入控件。
+            return reject;
         }
-        if root.importer: VerticalLayout {
-            spacing: 8px;
-            Text { text: "导入后立即应用到"; color: Theme.foreground; font-size: 14px; font-weight: 600; }
-            HorizontalLayout { spacing: 12px; alignment: start;
-                for host in root.apply-hosts: VerticalLayout { spacing: 4px;
-                    CheckBox { text: host.name; accessible-label: "立即应用到 " + host.name; checked <=> host.checked; enabled: host.available && !root.busy; toggled => { root.import-selection-changed(); } }
-                    if host.reason != "": MutedText { text: host.reason; font-size: 10px; }
+        VerticalLayout {
+            width: root.width; height: root.height; padding: 20px; spacing: 12px;
+            HorizontalLayout {
+                spacing: 10px;
+                Heading { text: root.title; horizontal-stretch: 1; }
+                close-action := Action { text: "关闭"; accessible-name: "关闭编辑窗口"; enabled: root.can-cancel && !root.discard-open; clicked => { root.cancel(); } }
+            }
+            if root.description != "" && !root.confirmation: MutedText { text: root.description; font-size: 12px; max-height: 52px; overflow: elide; }
+            if root.load-state == 1: MutedText { text: "正在读取草稿…读取完成前不能保存。"; }
+            if root.error != "": Text { text: root.error; color: Theme.destructive; wrap: word-wrap; max-height: 64px; overflow: elide; font-size: 13px; }
+            if root.load-state == 2: HorizontalLayout {
+                alignment: start;
+                Action { text: "重试读取"; enabled: !root.busy && !root.discard-open; clicked => { root.retry(); } }
+            }
+            if root.importer: ImportFilters {
+                query <=> root.import-query; host-filter <=> root.import-host-filter;
+                host-names: root.import-host-names; enabled: root.editable;
+                filter-changed(value, host) => { root.import-filter-changed(value, host); }
+            }
+            if root.import-conflict != "": Rectangle {
+                background: Theme.error-surface; border-width: 1px; border-color: Theme.destructive; border-radius: 6px;
+                VerticalLayout { padding: 10px; Text { text: root.import-conflict; color: Theme.destructive; font-size: 12px; wrap: word-wrap; } }
+            }
+            ScrollView {
+                enabled: root.editable; vertical-stretch: 1;
+                min-height: root.short || root.confirmation ? 36px : 120px;
+                horizontal-scrollbar-policy: always-off;
+                VerticalLayout {
+                    spacing: 12px; padding-right: 10px;
+                    if root.confirmation && root.description != "": MutedText { text: root.description; font-size: 13px; }
+                    generic-fields := GenericFields {
+                        fields <=> root.fields; enabled: root.editable; mcp: root.mcp; focus-first: !root.confirmation;
+                        field-changed(key) => { root.field-changed(key); }
+                        edited => { root.dialog-changed(); }
+                    }
+                    if root.mcp: McpForm {
+                        enabled: root.editable; transport <=> root.mcp-type;
+                        command <=> root.mcp-command; endpoint <=> root.mcp-endpoint;
+                        args <=> root.mcp-args; args-action <=> root.mcp-args-action; args-stored-count: root.mcp-args-stored-count;
+                        env <=> root.mcp-env; headers <=> root.mcp-headers;
+                        secret-action <=> root.mcp-secret-action; secret-stored: root.mcp-secret-stored; secret <=> root.mcp-secret;
+                        advanced <=> root.mcp-advanced; show-advanced <=> root.mcp-show-advanced;
+                        edited => { root.dialog-changed(); }
+                        type-changed(value) => { root.mcp-type-changed(value); }
+                        arg-add => { root.mcp-arg-add(); }
+                        arg-remove(index) => { root.mcp-arg-remove(index); }
+                        entry-add(kind) => { root.mcp-entry-add(kind); }
+                        entry-remove(kind, index) => { root.mcp-entry-remove(kind, index); }
+                        entry-changed(kind, index) => { root.mcp-entry-changed(kind, index); }
+                    }
+                    if root.importer: ImportCandidates {
+                        rows <=> root.import-rows; enabled: root.editable; busy: root.busy;
+                        selection-changed => { root.import-selection-changed(); root.dialog-changed(); }
+                    }
+                    SkillCandidates { candidates <=> root.candidates; enabled: root.editable; edited => { root.dialog-changed(); } }
+                    Rectangle { vertical-stretch: 1; }
                 }
             }
-            MutedText { text: "已选择 " + root.import-count + " 项。未勾选宿主时仅导入 Chu；原宿主数据不会被移除。"; font-size: 11px; }
-        }
-        HorizontalLayout {
-            alignment: end; spacing: 10px;
-            if root.importer: Action { text: "重新扫描"; enabled: !root.busy; clicked => { root.preview(); } }
-            if root.installer: Action { text: "预览仓库"; enabled: !root.busy; clicked => { root.preview(); } }
-            Action { text: "取消"; enabled: !root.busy; clicked => { root.cancel(); } }
-            Action { text: root.busy ? "处理中…" : root.importer ? (root.has-apply-targets ? "导入并应用" : "导入到 Chu") : root.installer ? "安装所选" : root.confirmation ? "确认操作" : "保存"; primary: !root.confirmation; danger: root.confirmation; enabled: !root.busy && (!root.importer || root.import-count > 0); clicked => { root.submit(); } }
+            if root.importer: ImportFooter {
+                hosts <=> root.apply-hosts; enabled: root.editable; count: root.import-count; compatibility: root.import-compatibility;
+                selection-changed => { root.import-selection-changed(); root.dialog-changed(); }
+            }
+            HorizontalLayout {
+                alignment: end; spacing: 10px;
+                if root.importer: Action { text: "重新扫描"; enabled: !root.busy && !root.discard-open; clicked => { root.preview(); } }
+                if root.installer: Action { text: "预览仓库"; enabled: root.editable; clicked => { root.preview(); } }
+                cancel-action := Action { text: "取消"; enabled: root.can-cancel && !root.discard-open; clicked => { root.cancel(); } }
+                Action {
+                    text: root.busy ? "处理中…" : root.importer ? (root.has-apply-targets ? "导入并应用" : "导入到 Chu") : root.installer ? "安装所选" : root.confirmation ? "确认操作" : "保存";
+                    primary: !root.confirmation; danger: root.confirmation; enabled: root.submit-enabled;
+                    clicked => { root.submit(); }
+                }
+            }
         }
     }
+    if root.discard-open: Rectangle {
+        background: Theme.foreground.with-alpha(0.22);
+        TouchArea { }
+        DiscardPrompt {
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: min(460px, parent.width - 40px); height: 188px;
+            continue-editing => { root.continue-editing(); }
+            discard => { root.discard(); }
+        }
     }
 }

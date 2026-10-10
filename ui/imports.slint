@@ -1,0 +1,85 @@
+import { LineEdit, ComboBox, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Card, MutedText, SingleLine, ImportRow, ApplyHostRow } from "components.slint";
+
+export component ImportFilters inherits Rectangle {
+    in-out property <string> query;
+    in-out property <int> host-filter;
+    in property <[string]> host-names;
+    in property <bool> enabled;
+    callback filter-changed(string, int);
+    min-height: 36px; vertical-stretch: 0;
+    HorizontalLayout {
+        spacing: 10px;
+        LineEdit {
+            text <=> root.query; accessible-label: "搜索导入候选";
+            placeholder-text: "搜索名称、来源、路径…"; enabled: root.enabled;
+            edited(value) => { root.filter-changed(value, root.host-filter); }
+        }
+        ComboBox {
+            model: root.host-names; current-index <=> root.host-filter;
+            enabled: root.enabled; accessible-label: "筛选导入来源宿主";
+            preferred-width: 168px; horizontal-stretch: 0;
+            selected => { root.filter-changed(root.query, self.current-index); }
+        }
+    }
+}
+
+export component ImportCandidates inherits Rectangle {
+    in-out property <[ImportRow]> rows;
+    in property <bool> enabled;
+    in property <bool> busy;
+    callback selection-changed();
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 10px;
+        if root.rows.length == 0: MutedText {
+            text: root.busy ? "正在扫描宿主资源…" : "没有匹配的可导入资源。调整筛选、重新扫描，或检查设置中的宿主路径。";
+        }
+        for item in root.rows: Card {
+            // 原因换行决定卡片高度，不省略阻止导入的重要说明。
+            min-height: 82px; vertical-stretch: 0;
+            VerticalLayout {
+                padding: 12px; spacing: 5px;
+                CheckBox {
+                    text: item.name; accessible-label: item.name;
+                    accessible-description: "资源 " + (item.raw-name != "" ? item.raw-name : item.name) + " · 来源宿主 " + item.host-id;
+                    checked <=> item.checked; enabled: item.available && root.enabled;
+                    toggled => { root.selection-changed(); }
+                }
+                if item.description != "": MutedText { text: item.description; }
+                MutedText { text: item.source; font-size: 11px; }
+                if item.remote: SingleLine { text: "远程 MCP · 仅显示安全元数据"; font-size: 10px; }
+                if item.reason != "": MutedText { text: "不可导入 · " + item.reason; font-size: 11px; }
+            }
+        }
+    }
+}
+
+export component ImportFooter inherits Rectangle {
+    in-out property <[ApplyHostRow]> hosts;
+    in property <bool> enabled;
+    in property <int> count;
+    in property <string> compatibility;
+    callback selection-changed();
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 7px;
+        Rectangle { height: 1px; background: Theme.subtle-border; }
+        Text { text: "导入后立即应用到"; color: Theme.foreground; font-size: 14px; font-weight: 600; }
+        HorizontalLayout {
+            spacing: 10px; alignment: start;
+            for host in root.hosts: VerticalLayout {
+                spacing: 3px; horizontal-stretch: 1;
+                CheckBox {
+                    text: host.name; accessible-label: "立即应用到 " + host.name;
+                    checked <=> host.checked; enabled: host.available && root.enabled;
+                    toggled => { root.selection-changed(); }
+                }
+                if host.reason != "": MutedText { text: host.reason; font-size: 10px; }
+            }
+        }
+        if root.compatibility != "": MutedText { text: root.compatibility; font-size: 11px; }
+        MutedText { text: "已选择 " + root.count + " 项（包含筛选外的选择）。未勾选宿主时仅导入 Chu；原宿主数据不会移除。"; font-size: 11px; }
+    }
+}

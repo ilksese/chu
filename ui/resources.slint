@@ -1,0 +1,163 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, Card, MutedText, SingleLine, ResourceRow, HostToggle, HostRow, ProjectSkillRow, MarkdownBlock } from "components.slint";
+import { ResourceDetail } from "detail.slint";
+
+component ResourceItem inherits Rectangle {
+    in property <ResourceRow> item;
+    in property <bool> selected;
+    in property <bool> enabled;
+    callback activate();
+    callback select-relative(int);
+    callback select-index(int);
+    callback ensure-visible();
+    changed selected => { if root.selected { root.ensure-visible(); focus.focus(); } }
+    min-height: 72px; preferred-height: 72px; max-height: 72px;
+    vertical-stretch: 0; border-radius: 6px; border-width: 1px;
+    border-color: focus.has-focus ? Theme.ring : root.selected ? Theme.border : Theme.subtle-border;
+    background: root.selected ? Theme.primary-muted : pointer.has-hover ? Theme.muted : Theme.card;
+    forward-focus: focus;
+    accessible-role: button;
+    accessible-label: root.item.name;
+    accessible-description: root.item.description + " · " + root.item.meta;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { focus.focus(); root.activate(); } }
+    VerticalLayout {
+        padding: 10px; spacing: 3px;
+        Text { text: root.item.name; color: Theme.foreground; font-size: 14px; font-weight: 600; wrap: no-wrap; overflow: elide; }
+        SingleLine { text: root.item.description; font-size: 11px; }
+        SingleLine { text: root.item.meta; font-size: 10px; }
+    }
+    pointer := TouchArea { enabled: root.enabled; clicked => { focus.focus(); root.activate(); } }
+    focus := FocusScope {
+        x: 0px; y: 0px; width: 0px; height: 0px; enabled: root.enabled;
+        focus-on-tab-navigation: root.selected;
+        key-pressed(event) => {
+            if !root.enabled { return reject; }
+            if event.text == Key.Return || event.text == Key.Space { root.activate(); return accept; }
+            if event.text == Key.UpArrow { root.select-relative(-1); return accept; }
+            if event.text == Key.DownArrow { root.select-relative(1); return accept; }
+            if event.text == Key.Home { root.select-index(0); return accept; }
+            if event.text == Key.End { root.select-index(-1); return accept; }
+            return reject;
+        }
+    }
+}
+
+export component ResourcePage inherits Rectangle {
+    in property <int> page;
+    in property <[ResourceRow]> rows;
+    in-out property <string> query;
+    in property <string> selected-id;
+    in property <string> selected-name;
+    in property <string> selected-description;
+    in property <string> selected-meta;
+    in property <string> selected-content;
+    in property <string> selected-models;
+    in property <[HostToggle]> deployments;
+    in property <[ProjectSkillRow]> project-skills;
+    in property <[HostRow]> hosts;
+    in property <string> action-one;
+    in property <string> action-two;
+    in property <string> action-three;
+    in property <bool> interactive;
+    in property <bool> writable;
+    in-out property <length> list-scroll-y;
+    in-out property <length> detail-scroll-y;
+    in property <int> detail-load-state;
+    in property <string> detail-error;
+    in property <[MarkdownBlock]> markdown-blocks;
+    in-out property <bool> markdown-source;
+    in-out property <string> focus-owner;
+    in property <int> focus-request;
+    callback search(string);
+    callback select-row(string);
+    callback select-relative(int);
+    callback select-index(int);
+    callback action(string);
+    callback toggle(string, bool);
+    callback project-toggle(string, string, bool);
+    callback project-reset(string, string);
+    callback copy-text(string);
+    callback copy-code(string);
+    callback copy-uri(string);
+    callback retry-detail();
+    VerticalLayout {
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 10px;
+            LineEdit {
+                text <=> root.query; placeholder-text: "搜索名称、描述、来源…";
+                accessible-label: "搜索资源"; enabled: root.interactive;
+                edited(value) => { root.search(value); }
+            }
+            if root.page == 2 || root.page == 3: Action {
+                text: "导入"; enabled: root.writable;
+                focus-request: root.focus-owner == "import" ? root.focus-request : 0;
+                clicked => { root.focus-owner = "import"; root.action("import"); }
+            }
+            if root.page == 2: Action { text: "检查更新"; enabled: root.writable; clicked => { root.action("check-updates"); } }
+            Action {
+                text: root.page == 1 ? "添加项目" : root.page == 2 ? "安装 Skills" : "新建";
+                primary: true; enabled: root.writable;
+                focus-request: root.focus-owner == "add" || root.focus-owner == "overview-install" ? root.focus-request : 0;
+                clicked => { root.focus-owner = "add"; root.action("add"); }
+            }
+        }
+        HorizontalLayout {
+            spacing: 16px;
+            Card {
+                // 约束列表宽度，将剩余空间留给阅读预览。
+                width: 300px; horizontal-stretch: 0;
+                VerticalLayout {
+                    padding: 10px; spacing: 8px;
+                    SingleLine { text: "资源列表 · " + root.rows.length; font-size: 11px; }
+                    list-scroll := ScrollView {
+                        enabled: root.interactive; horizontal-scrollbar-policy: always-off;
+                        content-y <=> root.list-scroll-y;
+                        VerticalLayout {
+                            spacing: 6px;
+                            for row[index] in root.rows: ResourceItem {
+                                item: row; selected: root.selected-id == row.id; enabled: root.interactive;
+                                ensure-visible => {
+                                    let top = index * 78px;
+                                    if list-scroll.visible-height > 0px {
+                                        if top + root.list-scroll-y < 0px { root.list-scroll-y = -top; }
+                                        else if top + 72px + root.list-scroll-y > list-scroll.visible-height { root.list-scroll-y = list-scroll.visible-height - top - 72px; }
+                                    }
+                                }
+                                activate => { root.select-row(row.id); }
+                                select-relative(delta) => { root.select-relative(delta); }
+                                select-index(index) => { root.select-index(index); }
+                            }
+                            if root.rows.length == 0: MutedText {
+                                text: root.query != "" ? "没有匹配的资源。\n清空或调整搜索条件。" : root.page == 2 || root.page == 3 ? "这里只列出 Chu 管理的资源。\n导入宿主数据，或新建资源。" : "暂无资源。\n使用右上角按钮添加。";
+                            }
+                            Rectangle { vertical-stretch: 1; }
+                        }
+                    }
+                    SingleLine { text: "↑ ↓ 选择 · Home / End 首尾"; font-size: 10px; }
+                }
+            }
+            ResourceDetail {
+                horizontal-stretch: 1; min-width: 340px;
+                page: root.page; selected-id: root.selected-id; selected-name: root.selected-name;
+                description: root.selected-description; meta: root.selected-meta; content: root.selected-content; models: root.selected-models;
+                deployments: root.deployments; project-skills: root.project-skills; hosts: root.hosts;
+                action-one: root.action-one; action-two: root.action-two; action-three: root.action-three;
+                interactive: root.interactive; writable: root.writable; scroll-y <=> root.detail-scroll-y;
+                load-state: root.detail-load-state; error: root.detail-error;
+                markdown-blocks: root.markdown-blocks; source <=> root.markdown-source;
+                focus-owner <=> root.focus-owner; focus-request: root.focus-request;
+                action(kind) => { root.action(kind); }
+                toggle(host, enabled) => { root.toggle(host, enabled); }
+                project-toggle(skill, host, enabled) => { root.project-toggle(skill, host, enabled); }
+                project-reset(skill, host) => { root.project-reset(skill, host); }
+                copy-text(value) => { root.copy-text(value); }
+                copy-code(value) => { root.copy-code(value); }
+                copy-uri(value) => { root.copy-uri(value); }
+                retry => { root.retry-detail(); }
+            }
+        }
+    }
+}

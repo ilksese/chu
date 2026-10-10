@@ -1,0 +1,134 @@
+import { ScrollView, TextEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Action, MutedText, SingleLine, MarkdownBlock } from "components.slint";
+
+component MarkdownTable inherits ScrollView {
+    in property <MarkdownBlock> block;
+    in property <bool> interactive;
+    enabled: root.interactive;
+    accessible-role: groupbox; accessible-label: "Markdown 表格";
+    accessible-description: "可局部横向滚动的 Markdown 表格";
+    vertical-scrollbar-policy: always-off;
+    horizontal-scrollbar-policy: as-needed;
+    // 外层纵向滚动按最小高度分配布局，表格必须把全部行纳入最小预算。
+    min-height: max(48px, rows.min-height + 16px);
+    preferred-height: root.min-height;
+    content-height: rows.min-height;
+    vertical-stretch: 0;
+    content-width: max(root.visible-width, root.block.rows.length > 0 ? root.block.rows[0].cells.length * 188px : 188px);
+    rows := VerticalLayout {
+        spacing: 0px; width: root.content-width;
+        for row in root.block.rows: HorizontalLayout {
+            spacing: 0px;
+            for cell in row.cells: Rectangle {
+                width: 188px; min-height: 40px; vertical-stretch: 0;
+                background: row.header ? Theme.muted : Theme.card;
+                border-width: 1px; border-color: Theme.subtle-border;
+                VerticalLayout {
+                    padding: 10px;
+                    StyledText { text: cell.styled; default-color: Theme.foreground; default-font-size: 13px; link-color: Theme.foreground; accessible-role: text; accessible-label: cell.text; }
+                }
+            }
+        }
+    }
+}
+
+component MarkdownSection inherits Rectangle {
+    in property <MarkdownBlock> block;
+    in property <bool> interactive;
+    callback copy-code(string);
+    callback copy-uri(string);
+    vertical-stretch: 0;
+    code-measure := Text {
+        x: 0px; y: 0px; width: 0px; height: 0px; visible: false;
+        text: root.block.text; font-family: "monospace"; font-size: 12px;
+        color: Theme.foreground; wrap: no-wrap; accessible-role: none;
+    }
+    VerticalLayout {
+        spacing: 6px;
+        if root.block.kind == "rule": Rectangle { height: 1px; background: Theme.subtle-border; }
+        if root.block.kind == "heading": StyledText {
+            text: root.block.styled; accessible-role: text; accessible-label: root.block.text;
+            default-color: Theme.foreground; default-font-size: root.block.level == 1 ? 24px : root.block.level == 2 ? 20px : 16px;
+            link-color: Theme.foreground;
+            link-clicked(uri) => { if root.interactive { root.copy-uri(uri); } }
+        }
+        if root.block.kind == "paragraph" || root.block.kind == "list" || root.block.kind == "quote" || root.block.kind == "fallback": HorizontalLayout {
+            spacing: 8px;
+            if root.block.kind == "quote": Rectangle { width: 3px; background: Theme.subtle-border; }
+            if root.block.prefix != "": Text { text: root.block.prefix; color: Theme.muted-foreground; font-size: 13px; width: max(20px, self.preferred-width); vertical-alignment: top; }
+            StyledText { text: root.block.styled; accessible-role: text; accessible-label: root.block.text; default-color: Theme.foreground; default-font-size: 14px; link-color: Theme.foreground; horizontal-stretch: 1; link-clicked(uri) => { if root.interactive { root.copy-uri(uri); } } }
+        }
+        if root.block.kind == "code" || root.block.kind == "frontmatter": Rectangle {
+            background: Theme.muted; border-width: 1px; border-color: Theme.subtle-border; border-radius: 6px;
+            VerticalLayout {
+                padding: 10px; spacing: 6px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    SingleLine { text: root.block.kind == "frontmatter" ? "Frontmatter · 元数据" : root.block.language != "" ? root.block.language : "代码"; horizontal-stretch: 1; font-size: 11px; }
+                    Action { text: "复制代码"; accessible-name: root.block.kind == "frontmatter" ? "复制 Frontmatter" : "复制代码"; compact: true; enabled: root.interactive; clicked => { root.copy-code(root.block.text); } }
+                }
+                TextEdit {
+                    text: root.block.text; accessible-label: root.block.kind == "frontmatter" ? "Frontmatter 源码" : "代码块";
+                    read-only: true; enabled: root.interactive; wrap: no-wrap;
+                    font-family: "monospace"; font-size: 12px; min-height: 56px;
+                    preferred-height: clamp(code-measure.preferred-height + 16px, 56px, 220px); max-height: 220px;
+                }
+            }
+        }
+        if root.block.kind == "table": MarkdownTable { block: root.block; interactive: root.interactive; }
+        for link in root.block.links: HorizontalLayout {
+            spacing: 8px;
+            SingleLine { text: link.label + " · " + link.uri; font-size: 11px; horizontal-stretch: 1; }
+            Action { text: "复制链接"; accessible-name: "复制链接 · " + link.label; compact: true; enabled: root.interactive; clicked => { root.copy-uri(link.uri); } }
+        }
+    }
+}
+
+export component MarkdownPane inherits Rectangle {
+    in property <string> name;
+    in property <string> raw;
+    in property <[MarkdownBlock]> blocks;
+    in property <bool> interactive;
+    in-out property <bool> source;
+    in-out property <length> scroll-y;
+    callback copy-text(string);
+    callback copy-code(string);
+    callback copy-uri(string);
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px; alignment: start;
+            Action { text: "预览"; accessible-name: "Markdown 预览"; primary: !root.source; enabled: root.interactive; clicked => { root.source = false; } }
+            Action { text: "源码"; accessible-name: "Markdown 源码"; primary: root.source; enabled: root.interactive; clicked => { root.source = true; } }
+            Rectangle { horizontal-stretch: 1; }
+            Action { text: "复制内容"; enabled: root.interactive; clicked => { root.copy-text(root.raw); } }
+        }
+        Rectangle {
+            vertical-stretch: 1; min-height: 80px;
+            if root.source: TextEdit {
+                width: parent.width; height: parent.height; text: root.raw; read-only: true;
+                enabled: root.interactive; accessible-label: root.name + " 内容";
+                font-size: 13px; content-y <=> root.scroll-y;
+            }
+            if !root.source: ScrollView {
+                accessible-role: groupbox; accessible-label: root.name + " 预览"; accessible-description: "资源阅读区域";
+                width: parent.width; height: parent.height; enabled: root.interactive;
+                horizontal-scrollbar-policy: always-off; content-y <=> root.scroll-y;
+                VerticalLayout {
+                    padding: 4px; padding-right: 12px; spacing: 14px;
+                    for block in root.blocks: MarkdownSection {
+                        block: block; interactive: root.interactive;
+                        copy-code(value) => { root.copy-code(value); }
+                        copy-uri(value) => { root.copy-uri(value); }
+                    }
+                    if root.blocks.length == 0: Text {
+                        text: root.raw == "" ? "暂无内容。" : root.raw;
+                        color: Theme.foreground; font-size: 14px; wrap: word-wrap;
+                    }
+                    Rectangle { vertical-stretch: 1; }
+                }
+            }
+        }
+    }
+}

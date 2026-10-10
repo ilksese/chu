@@ -1,0 +1,94 @@
+import { LineEdit, TextEdit, CheckBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { MutedText, FormField, CandidateRow, Card } from "components.slint";
+
+component FieldInput inherits Rectangle {
+    in-out property <FormField> field;
+    in property <bool> enabled;
+    in property <bool> focus-first;
+    in property <int> focus-request;
+    callback field-changed(string);
+    callback edited();
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 6px;
+        if root.field.kind != 2: Text { text: root.field.label; color: Theme.foreground; font-size: 13px; font-weight: 600; }
+        if root.field.kind == 0 || root.field.kind == 4: LineEdit {
+            property <int> request: root.focus-request;
+            property <bool> initial-focus-applied;
+            function focus-input() { if root.enabled && root.focus-first { self.focus(); self.initial-focus-applied = true; } }
+            init => { self.focus-input(); }
+            changed request => { self.focus-input(); }
+            changed enabled => { if !self.initial-focus-applied { self.focus-input(); } }
+            accessible-label: root.field.label; text <=> root.field.value; placeholder-text: root.field.placeholder;
+            input-type: root.field.kind == 4 ? password : text; enabled: root.enabled;
+            edited => { root.field-changed(root.field.key); root.edited(); }
+        }
+        if root.field.kind == 1: TextEdit {
+            property <int> request: root.focus-request;
+            property <bool> initial-focus-applied;
+            function focus-input() { if root.enabled && root.focus-first { self.focus(); self.initial-focus-applied = true; } }
+            init => { self.focus-input(); }
+            changed request => { self.focus-input(); }
+            changed enabled => { if !self.initial-focus-applied { self.focus-input(); } }
+            accessible-label: root.field.label; text <=> root.field.value;
+            min-height: 140px; preferred-height: 200px; enabled: root.enabled;
+            // Return 保留原生多行输入的换行行为。
+            edited => { root.field-changed(root.field.key); root.edited(); }
+        }
+        if root.field.kind == 2: CheckBox {
+            property <int> request: root.focus-request;
+            property <bool> initial-focus-applied;
+            function focus-input() { if root.enabled && root.focus-first { self.focus(); self.initial-focus-applied = true; } }
+            init => { self.focus-input(); }
+            changed request => { self.focus-input(); }
+            changed enabled => { if !self.initial-focus-applied { self.focus-input(); } }
+            text: root.field.label; accessible-label: root.field.label;
+            checked: root.field.value == "true"; enabled: root.enabled;
+            toggled => { root.field.value = self.checked ? "true" : "false"; root.field-changed(root.field.key); root.edited(); }
+        }
+        if root.field.kind == 3: MutedText { text: root.field.value; }
+    }
+}
+
+export component GenericFields inherits Rectangle {
+    in-out property <[FormField]> fields;
+    in property <bool> enabled;
+    in property <bool> mcp;
+    in property <bool> focus-first: true;
+    property <int> first-focus-request;
+    callback field-changed(string);
+    callback edited();
+    public function focus-first-input() { root.first-focus-request += 1; }
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 12px;
+        for field[index] in root.fields: VerticalLayout {
+            if !root.mcp || field.key == "name" || field.key == "description": FieldInput {
+                field <=> field; enabled: root.enabled; focus-first: root.focus-first && index == 0;
+                focus-request: root.first-focus-request;
+                field-changed(key) => { root.field-changed(key); }
+                edited => { root.edited(); }
+            }
+        }
+    }
+}
+
+export component SkillCandidates inherits Rectangle {
+    in-out property <[CandidateRow]> candidates;
+    in property <bool> enabled;
+    callback edited();
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 10px;
+        for candidate in root.candidates: Card {
+            min-height: 72px; vertical-stretch: 0;
+            VerticalLayout {
+                padding: 10px; spacing: 4px;
+                CheckBox { text: candidate.name + (candidate.installed ? " · 已安装" : ""); checked <=> candidate.checked; enabled: !candidate.installed && root.enabled; toggled => { root.edited(); } }
+                MutedText { text: candidate.description; }
+                MutedText { text: candidate.path; font-size: 11px; }
+            }
+        }
+    }
+}

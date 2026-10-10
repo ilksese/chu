@@ -12,6 +12,7 @@ pub struct App {
     pub state: State,
     pub preferences: Preferences,
     pub(crate) environment: bool,
+    pub(crate) preview_store: std::sync::Arc<std::sync::Mutex<crate::preview_store::PreviewStore>>,
 }
 impl App {
     /// Tests and automation must provide an isolated home. No process HOME mutation.
@@ -43,12 +44,14 @@ impl App {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Preferences::default(),
             Err(e) => return Err(e.into()),
         };
+        let preview_store = crate::preview_store::new_store(&root, &home)?;
         let mut app = Self {
             root,
             home,
             state,
             preferences,
             environment,
+            preview_store,
         };
         if !raw.is_empty() {
             app.migrate_sources(&raw)?;
@@ -124,17 +127,7 @@ impl App {
             .state
             .mcps
             .iter()
-            .map(|s| McpView {
-                id: s.id.clone(),
-                name: s.name.clone(),
-                description: s.description.clone(),
-                r#type: s.r#type.clone(),
-                endpoint: s.endpoint.clone(),
-                command: s.command.clone(),
-                has_credentials: !s.secret.is_empty() || !s.env.is_empty() || !s.headers.is_empty(),
-                managed: true,
-                enabled_on: hosts::deployment_views(&s.deployments).0,
-            })
+            .map(crate::resource_edit::safe_mcp_view)
             .collect();
         mcps.extend(self.discovered_mcps(&hosts));
         mcps.sort_by(|a, b| a.name.cmp(&b.name));
@@ -231,6 +224,17 @@ impl App {
                 serde_json::from_value(args.get(2).cloned().unwrap_or_default())?,
             )?,
             "PreviewSkills" => return Ok(serde_json::to_value(self.preview_skills(string(0))?)?),
+            "PreviewSkillsBound" => {
+                return Ok(serde_json::to_value(self.preview_skills_bound(string(0))?)?);
+            }
+            "DropSkillPreview" => {
+                self.drop_skill_preview(string(0))?;
+                return Ok(Value::Null);
+            }
+            "InstallSkillsFromPreview" => self.install_skills_from_preview(
+                string(0),
+                serde_json::from_value(args.get(1).cloned().unwrap_or_default())?,
+            )?,
             "InstallSkills" => self.install_skills(
                 string(0),
                 serde_json::from_value(args.get(1).cloned().unwrap_or_default())?,
@@ -240,11 +244,44 @@ impl App {
             "RemoveSkill" | "DeleteSkill" => self.delete_skill(string(0))?,
             "ImportSkill" => self.import_skill(string(0), string(1))?,
             "ToggleSkill" => self.toggle_skill(string(0), string(1), boolean(2))?,
-            "AddMCP" => self.add_mcp(serde_json::from_value(
+            "ReadMCPEdit" => return Ok(serde_json::to_value(self.read_mcp_edit(string(0))?)?),
+            "UpdateMCP" => self.update_mcp(
+                string(0),
+                crate::mcp_input::safe_from_value(
+                    args.get(1)
+                        .cloned()
+                        .unwrap_or_else(|| serde_json::json!({})),
+                    "MCP 编辑输入",
+                )?,
+            )?,
+            "DeleteMCP" => self.delete_mcp(
+                string(0),
+                serde_json::from_value(
+                    args.get(1)
+                        .cloned()
+                        .unwrap_or_else(|| serde_json::json!({})),
+                )?,
+            )?,
+            "AddMCP" => self.add_mcp(crate::mcp_input::safe_from_value(
                 args.get(0).cloned().unwrap_or_default(),
+                "MCP 新建输入",
             )?)?,
             "ToggleMCP" => self.toggle_mcp(string(0), string(1), boolean(2))?,
             "TestMCP" => return Ok(Value::String(self.test_mcp(string(0))?)),
+            "TestMCPResult" => return Ok(serde_json::to_value(self.test_mcp_result(string(0))?)?),
+            "ReadAgentEdit" => return Ok(serde_json::to_value(self.read_agent_edit(string(0))?)?),
+            "UpdateAgent" => self.update_agent(
+                string(0),
+                serde_json::from_value(args.get(1).cloned().unwrap_or_default())?,
+            )?,
+            "DeleteAgent" => self.delete_agent(
+                string(0),
+                serde_json::from_value(
+                    args.get(1)
+                        .cloned()
+                        .unwrap_or_else(|| serde_json::json!({})),
+                )?,
+            )?,
             "AddAgent" => self.add_agent(serde_json::from_value(
                 args.get(0).cloned().unwrap_or_default(),
             )?)?,
