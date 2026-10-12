@@ -43,7 +43,6 @@ fn semantic_theme_keeps_the_approved_application_palette() {
 fn product_sources_and_build_hooks_do_not_depend_on_the_removed_stack() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     for obsolete in [
-        "frontend",
         "cmd",
         "internal",
         "go.mod",

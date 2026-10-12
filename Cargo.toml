@@ -32,6 +32,14 @@ winresource = "0.1"
 [dev-dependencies]
 i-slint-backend-testing = "=1.18.1"
 
+# Test builds inherit this profile. Keep limited debug info for application code.
+[profile.dev]
+debug = "limited"
+
+# Third-party dependency debug info accounts for most development build size.
+[profile.dev.package."*"]
+debug = "none"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
